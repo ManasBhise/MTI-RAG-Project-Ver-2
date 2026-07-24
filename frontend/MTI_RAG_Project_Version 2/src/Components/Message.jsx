@@ -1,21 +1,37 @@
-import { useState } from "react";
-import { Avatar, Box, Chip, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import { useState, useEffect, useRef } from "react";
+import { Avatar, Box, Button, Chip, IconButton, MenuItem, Paper, Select, Stack, TextField, Tooltip, Typography } from "@mui/material";
+import imdLogo from "../assets/imd_logo.jpg";
 
-function RobotIcon() {
+function VerifiedBadgeIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="10" rx="2"></rect>
-      <circle cx="12" cy="5" r="2"></circle>
-      <path d="M12 7v4"></path>
-      <line x1="8" y1="16" x2="8.01" y2="16"></line>
-      <line x1="16" y1="16" x2="16.01" y2="16"></line>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+    </svg>
+  );
+}
+
+function SpeakerIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+    </svg>
+  );
+}
+
+function SpeakerMuteIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <line x1="23" y1="9" x2="17" y2="15"></line>
+      <line x1="17" y1="9" x2="23" y2="15"></line>
     </svg>
   );
 }
 
 function UserIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
       <circle cx="12" cy="7" r="4"></circle>
     </svg>
@@ -24,16 +40,25 @@ function UserIcon() {
 
 function CopyIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
     </svg>
   );
 }
 
+function EditIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </svg>
+  );
+}
+
 function DocumentIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
       <polyline points="14 2 14 8 20 8"></polyline>
       <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -42,60 +67,446 @@ function DocumentIcon() {
   );
 }
 
-function Message({ role, text, references = [], timestamp }) {
+const EDIT_MODES = [
+  { id: "basic", label: "🌱 Basic" },
+  { id: "moderate", label: "⚖️ Moderate" },
+  { id: "research", label: "🔬 In-Depth" },
+];
+
+function TypingDots() {
+  return (
+    <Box sx={{ display: "inline-flex", alignItems: "center", gap: "6px", py: 0.75, px: 0.5 }}>
+      <Box
+        sx={{
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          bgcolor: "#64748b",
+          animation: "typingPulse 1.4s infinite ease-in-out both",
+          animationDelay: "0s",
+        }}
+      />
+      <Box
+        sx={{
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          bgcolor: "#64748b",
+          animation: "typingPulse 1.4s infinite ease-in-out both",
+          animationDelay: "0.2s",
+        }}
+      />
+      <Box
+        sx={{
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          bgcolor: "#64748b",
+          animation: "typingPulse 1.4s infinite ease-in-out both",
+          animationDelay: "0.4s",
+        }}
+      />
+    </Box>
+  );
+}
+
+const cleanTextDisplay = (raw) => {
+  if (!raw) return "";
+  return raw
+    .replace(/[\uE000-\uF8FF\uFFF0-\uFFFF]/g, "")
+    .replace(/\[?\s*(?:source|Source)\s*\[?\s*\d+\s*\]?\s*\]?|\(\s*(?:source|Source)\s*\d+\s*\)|\[\d+\]/gi, "")
+    .replace(/ +/g, " ")
+    .replace(/ \./g, ".")
+    .replace(/ ,/g, ",")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
+function FormattedMarkdown({ text, isUser = false }) {
+  if (!text) return null;
+
+  const lines = text.split("\n");
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: 1, textAlign: "left" }}>
+      {lines.map((line, lineIdx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return <Box key={lineIdx} sx={{ height: 4 }} />;
+        }
+
+        const isBullet = /^(?:\*|-|•)\s+/.test(trimmed);
+        const content = isBullet ? trimmed.replace(/^(?:\*|-|•)\s+/, "") : line;
+
+        // Parse **bold** markers inside line
+        const parts = content.split(/(\*\*.*?\*\*)/g);
+
+        const renderedLine = parts.map((part, pIdx) => {
+          if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+            return (
+              <strong key={pIdx} style={{ fontWeight: 650, color: "inherit" }}>
+                {part.slice(2, -2)}
+              </strong>
+            );
+          }
+          return part;
+        });
+
+        if (isBullet) {
+          return (
+            <Box key={lineIdx} sx={{ display: "flex", alignItems: "flex-start", gap: 1, pl: 0.5, my: 0.15 }}>
+              <Box component="span" sx={{ color: isUser ? "#ffffff" : "#2563eb", fontWeight: "bold", fontSize: "0.75rem", lineHeight: 1.6, userSelect: "none" }}>
+                •
+              </Box>
+              <Typography variant="body2" sx={{ fontSize: "0.8375rem", lineHeight: 1.6, color: isUser ? "#ffffff" : "text.primary", flex: 1 }}>
+                {renderedLine}
+              </Typography>
+            </Box>
+          );
+        }
+
+        return (
+          <Typography key={lineIdx} variant="body2" sx={{ fontSize: "0.8375rem", lineHeight: 1.6, color: isUser ? "#ffffff" : "text.primary" }}>
+            {renderedLine}
+          </Typography>
+        );
+      })}
+    </Box>
+  );
+}
+
+function Message({ role, text, references = [], timestamp, isLoading = false, onEdit, messageId }) {
   const isUser = role === "user";
   const [copied, setCopied] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(text || "");
+  const [editMode, setEditMode] = useState("moderate");
+  const editInputRef = useRef(null);
+  const displayText = isUser ? text : cleanTextDisplay(text);
+
+  useEffect(() => {
+    if (isEditing && editInputRef.current) {
+      editInputRef.current.focus();
+    }
+  }, [isEditing]);
+
+  const handleStartEdit = () => {
+    setEditText(text || "");
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditText(text || "");
+    setIsEditing(false);
+  };
+
+  const handleSubmitEdit = () => {
+    const trimmed = editText.trim();
+    if (!trimmed || !onEdit) return;
+    onEdit(messageId, trimmed, editMode);
+    setIsEditing(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (isSpeaking && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [isSpeaking]);
 
   const handleCopy = () => {
-    if (text) {
-      navigator.clipboard.writeText(text);
+    if (displayText) {
+      navigator.clipboard.writeText(displayText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
+  const handleToggleSpeech = () => {
+    if (!("speechSynthesis" in window)) return;
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const cleanSpeech = displayText
+      .replace(/```[\s\S]*?```/g, "Code block omitted.")
+      .replace(/[`#*_]/g, "");
+
+    const utterance = new SpeechSynthesisUtterance(cleanSpeech);
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoice =
+      voices.find(
+        (v) =>
+          (v.name.includes("Natural") ||
+            v.name.includes("Google") ||
+            v.name.includes("Samantha") ||
+            v.name.includes("Microsoft")) &&
+          v.lang.startsWith("en")
+      ) || voices.find((v) => v.lang.startsWith("en"));
+
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
-    <Box sx={{ display: "flex", gap: 1.5, justifyContent: isUser ? "flex-end" : "flex-start", my: 1 }}>
+    <Box sx={{ display: "flex", gap: 1.25, justifyContent: isUser ? "flex-end" : "flex-start", my: 0.75, textAlign: "left" }}>
       {!isUser && (
-        <Avatar sx={{ bgcolor: "primary.main", color: "#fff", width: 36, height: 36, mt: 0.5 }}>
-          <RobotIcon />
-        </Avatar>
+        <Avatar
+          src={imdLogo}
+          alt="MTI Knowledge System"
+          sx={{
+            width: 32,
+            height: 32,
+            mt: 0.25,
+            flexShrink: 0,
+            border: "1px solid #cbd5e1",
+            bgcolor: "#ffffff",
+            p: "2px",
+            "& img": {
+              objectFit: "contain",
+            },
+          }}
+        />
       )}
 
       <Paper
         elevation={0}
         sx={{
-          maxWidth: { xs: "90%", md: "78%" },
-          px: 2.5,
-          py: 2,
-          borderRadius: 3,
-          bgcolor: isUser ? "primary.main" : "background.paper",
-          color: isUser ? "primary.contrastText" : "text.primary",
+          maxWidth: { xs: "88%", md: "78%" },
+          px: 2,
+          py: 1.5,
+          borderRadius: "10px",
+          bgcolor: isUser ? "#2563eb" : "background.paper",
+          color: isUser ? "#ffffff" : "text.primary",
           border: isUser ? "none" : "1px solid",
-          borderColor: "divider",
+          borderColor: isUser ? "transparent" : "divider",
+          boxShadow: isUser ? "none" : "0 1px 3px 0 rgba(15, 23, 42, 0.04)",
           position: "relative",
+          textAlign: "left",
         }}
       >
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
-          <Typography variant="body1" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.6, flex: 1 }}>
-            {text}
-          </Typography>
+        {!isUser && (
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.75, pb: 0.5, borderBottom: "1px solid", borderColor: "divider" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, fontSize: "0.725rem", color: "text.primary" }}>
+                MTI Knowledge Assistant
+              </Typography>
+              <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.3, px: 0.75, py: 0.1, borderRadius: "4px", bgcolor: "rgba(37, 99, 235, 0.08)", color: "#1d4ed8", fontSize: "0.65rem", fontWeight: 600 }}>
+                <VerifiedBadgeIcon />
+                Official Context
+              </Box>
+            </Box>
 
-          {!isUser && text && (
-            <Tooltip title={copied ? "Copied!" : "Copy response"} placement="top">
-              <IconButton size="small" onClick={handleCopy} sx={{ opacity: 0.7, "&:hover": { opacity: 1 } }}>
-                <CopyIcon />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
+            {!isLoading && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                {("speechSynthesis" in window) && text && (
+                  <Tooltip title={isSpeaking ? "Stop reading" : "Read response aloud"} placement="top">
+                    <IconButton
+                      size="small"
+                      onClick={handleToggleSpeech}
+                      sx={{
+                        opacity: isSpeaking ? 1 : 0.6,
+                        p: 0.25,
+                        color: isSpeaking ? "#2563eb" : "text.secondary",
+                        bgcolor: isSpeaking ? "rgba(37, 99, 235, 0.1)" : "transparent",
+                        "&:hover": { opacity: 1, bgcolor: "#f1f5f9" },
+                      }}
+                    >
+                      {isSpeaking ? <SpeakerMuteIcon /> : <SpeakerIcon />}
+                    </IconButton>
+                  </Tooltip>
+                )}
+
+                {text && (
+                  <Tooltip title={copied ? "Copied!" : "Copy response"} placement="top">
+                    <IconButton
+                      size="small"
+                      onClick={handleCopy}
+                      sx={{
+                        opacity: 0.6,
+                        p: 0.25,
+                        color: "text.secondary",
+                        "&:hover": { opacity: 1, bgcolor: "#f1f5f9" },
+                      }}
+                    >
+                      <CopyIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {isUser && isEditing ? (
+          <Box sx={{ width: "100%" }}>
+            <TextField
+              fullWidth
+              multiline
+              maxRows={6}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              inputRef={editInputRef}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmitEdit();
+                }
+                if (e.key === "Escape") {
+                  handleCancelEdit();
+                }
+              }}
+              size="small"
+              sx={{
+                mb: 1.25,
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "8px",
+                  fontSize: "0.8375rem",
+                  bgcolor: "rgba(255,255,255,0.15)",
+                  color: "#ffffff",
+                  "& fieldset": { borderColor: "rgba(255,255,255,0.35)" },
+                  "&:hover fieldset": { borderColor: "rgba(255,255,255,0.55)" },
+                  "&.Mui-focused fieldset": { borderColor: "rgba(255,255,255,0.7)" },
+                },
+                "& .MuiInputBase-input": { color: "#ffffff" },
+              }}
+            />
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: "space-between" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.675rem", fontWeight: 600 }}>
+                  Depth:
+                </Typography>
+                <Select
+                  value={editMode}
+                  onChange={(e) => setEditMode(e.target.value)}
+                  size="small"
+                  sx={{
+                    height: 28,
+                    fontSize: "0.725rem",
+                    color: "#ffffff",
+                    borderRadius: "6px",
+                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.3)" },
+                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.55)" },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.7)" },
+                    "& .MuiSvgIcon-root": { color: "rgba(255,255,255,0.7)" },
+                  }}
+                >
+                  {EDIT_MODES.map((m) => (
+                    <MenuItem key={m.id} value={m.id} sx={{ fontSize: "0.775rem" }}>
+                      {m.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Box>
+              <Box sx={{ display: "flex", gap: 0.75 }}>
+                <Button
+                  size="small"
+                  onClick={handleCancelEdit}
+                  sx={{
+                    fontSize: "0.725rem",
+                    fontWeight: 600,
+                    color: "rgba(255,255,255,0.8)",
+                    textTransform: "none",
+                    borderRadius: "6px",
+                    px: 1.5,
+                    minWidth: 0,
+                    "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={handleSubmitEdit}
+                  disabled={!editText.trim()}
+                  sx={{
+                    fontSize: "0.725rem",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    borderRadius: "6px",
+                    px: 1.5,
+                    minWidth: 0,
+                    bgcolor: "#ffffff",
+                    color: "#2563eb",
+                    boxShadow: "none",
+                    "&:hover": { bgcolor: "#f1f5f9", boxShadow: "none" },
+                    "&.Mui-disabled": { bgcolor: "rgba(255,255,255,0.3)", color: "rgba(37,99,235,0.5)" },
+                  }}
+                >
+                  Submit
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+            {isLoading ? (
+              <TypingDots />
+            ) : (
+              <FormattedMarkdown text={displayText} isUser={isUser} />
+            )}
+
+            {isUser && text && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, flexShrink: 0 }}>
+                {onEdit && (
+                  <Tooltip title="Edit query" placement="top">
+                    <IconButton
+                      size="small"
+                      onClick={handleStartEdit}
+                      sx={{
+                        opacity: 0.7,
+                        p: 0.25,
+                        color: "#ffffff",
+                        "&:hover": { opacity: 1 },
+                      }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <Tooltip title={copied ? "Copied!" : "Copy text"} placement="top">
+                  <IconButton
+                    size="small"
+                    onClick={handleCopy}
+                    sx={{
+                      opacity: 0.7,
+                      p: 0.25,
+                      color: "#ffffff",
+                      "&:hover": { opacity: 1 },
+                    }}
+                  >
+                    <CopyIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            )}
+          </Box>
+        )}
 
         {!isUser && references.length > 0 && (
-          <Box sx={{ mt: 2, pt: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
-            <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" sx={{ mb: 1 }}>
-              Document Sources:
+          <Box sx={{ mt: 1.5, pt: 1.25, borderTop: "1px solid", borderColor: "divider" }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, fontSize: "0.7rem", display: "block", mb: 0.75 }}>
+              Document References:
             </Typography>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
+            <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.75 }}>
               {references.map((ref, idx) => (
                 <Chip
                   key={idx}
@@ -103,7 +514,15 @@ function Message({ role, text, references = [], timestamp }) {
                   size="small"
                   label={ref}
                   variant="outlined"
-                  sx={{ borderRadius: 1.5, fontSize: "0.75rem", bgcolor: "grey.50" }}
+                  sx={{
+                    borderRadius: "5px",
+                    fontSize: "0.7rem",
+                    height: 22,
+                    borderColor: "divider",
+                    bgcolor: "action.hover",
+                    color: "text.secondary",
+                    "& .MuiChip-icon": { color: "text.secondary", ml: 0.75 },
+                  }}
                 />
               ))}
             </Stack>
@@ -114,11 +533,11 @@ function Message({ role, text, references = [], timestamp }) {
           <Typography
             variant="caption"
             sx={{
-              mt: 1,
+              mt: 0.75,
               display: "block",
               textAlign: isUser ? "right" : "left",
-              opacity: isUser ? 0.85 : 0.6,
-              fontSize: "0.7rem",
+              opacity: isUser ? 0.85 : 0.5,
+              fontSize: "0.6875rem",
             }}
           >
             {timestamp}
@@ -127,7 +546,16 @@ function Message({ role, text, references = [], timestamp }) {
       </Paper>
 
       {isUser && (
-        <Avatar sx={{ bgcolor: "grey.400", color: "#fff", width: 36, height: 36, mt: 0.5 }}>
+        <Avatar
+          sx={{
+            bgcolor: "#64748b",
+            color: "#ffffff",
+            width: 32,
+            height: 32,
+            mt: 0.25,
+            flexShrink: 0,
+          }}
+        >
           <UserIcon />
         </Avatar>
       )}
@@ -136,4 +564,3 @@ function Message({ role, text, references = [], timestamp }) {
 }
 
 export default Message;
-

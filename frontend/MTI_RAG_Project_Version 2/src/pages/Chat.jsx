@@ -5,38 +5,71 @@ import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
 import Message from "../Components/Message";
 import ChatInput from "../Components/ChatInput";
-import { askQuestion, clearSession, deleteHistoryItem, fetchHistory, getStoredUser, logoutUser } from "../services/api";
+import SettingsModal from "../Components/SettingsModal";
+import ThreadHistoryDrawer from "../Components/ThreadHistoryDrawer";
+import {
+  askQuestion,
+  clearSession,
+  deleteAllHistory,
+  deleteThread,
+  fetchThreadMessages,
+  fetchThreads,
+  getStoredUser,
+  logoutUser,
+  renameThread,
+} from "../services/api";
 
 function Chat() {
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [activeThreadId, setActiveThreadId] = useState(null);
+  const [responseMode, setResponseMode] = useState("moderate");
+  const [threads, setThreads] = useState([]);
   const [messages, setMessages] = useState([
     {
       id: "welcome-1",
       role: "assistant",
-      text: "Hello! I am your MTI Knowledge Assistant. Ask any question regarding MTI training materials and meteorological documentation.",
+      text: "Welcome to the Meteorological Training Institute Knowledge Repository. You may query official training literature, weather observation manuals, and meteorological documentations.",
       references: ["MTI Knowledge Base Index"],
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
-  const [history, setHistory] = useState([]);
 
   const user = getStoredUser();
 
+  const formatTime = (ts) => {
+    if (!ts) return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    try {
+      const d = new Date(ts);
+      return isNaN(d.getTime())
+        ? new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+  };
+
   const chatList = useMemo(
     () =>
-      history.length
-        ? history.map((item) => ({
-            id: item.id,
-            title: item.question,
+      Array.isArray(threads)
+        ? threads.map((t) => ({
+            id: t.id,
+            title: t.title || "Untitled Chat",
           }))
-        : [{ id: "current", title: "Current Chat" }],
-    [history]
+        : [],
+    [threads]
+  );
+
+  const activeThread = useMemo(
+    () => (Array.isArray(threads) ? threads.find((t) => t.id === activeThreadId) : null),
+    [threads, activeThreadId]
   );
 
   const scrollToBottom = () => {
@@ -47,47 +80,62 @@ function Chat() {
     scrollToBottom();
   }, [messages, loading]);
 
-  useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        const records = await fetchHistory();
-        setHistory(records);
+  const loadThreads = async () => {
+    try {
+      const data = await fetchThreads();
+      if (Array.isArray(data)) {
+        setThreads(data);
+        return data;
+      }
+      setThreads([]);
+      return [];
+    } catch (err) {
+      const message = err?.response?.data?.detail || "Unable to load conversation threads.";
+      setError(message);
+      setThreads([]);
+      return [];
+    }
+  };
 
-        if (records.length > 0) {
-          const mappedMessages = records
-            .slice()
-            .reverse()
-            .flatMap((record) => [
-              {
-                id: `q-${record.id}`,
-                role: "user",
-                text: record.question,
-                timestamp: new Date(record.timestamp).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              },
-              {
-                id: `a-${record.id}`,
-                role: "assistant",
-                text: record.answer,
-                references: record.sources,
-                timestamp: new Date(record.timestamp).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              },
-            ]);
-          setMessages(mappedMessages);
-        }
-      } catch (err) {
-        const message = err?.response?.data?.detail || "Unable to load chat history.";
-        setError(message);
+  useEffect(() => {
+    const initData = async () => {
+      const threadData = await loadThreads();
+      if (Array.isArray(threadData) && threadData.length > 0) {
+        const latest = threadData[0];
+        setActiveThreadId(latest.id);
+        await loadMessagesForThread(latest.id);
       }
     };
-
-    loadHistory();
+    initData();
   }, []);
+
+  const loadMessagesForThread = async (threadId) => {
+    try {
+      const records = await fetchThreadMessages(threadId);
+      if (!Array.isArray(records)) {
+        return;
+      }
+      const mappedMessages = records.flatMap((record) => [
+        {
+          id: `q-${record.id}`,
+          role: "user",
+          text: record.question || "",
+          timestamp: formatTime(record.timestamp),
+        },
+        {
+          id: `a-${record.id}`,
+          role: "assistant",
+          text: record.answer || "",
+          references: record.sources || [],
+          timestamp: formatTime(record.timestamp),
+        },
+      ]);
+      setMessages(mappedMessages);
+    } catch (err) {
+      const message = err?.response?.data?.detail || "Failed to load thread messages.";
+      setError(message);
+    }
+  };
 
   const handleSend = async (text) => {
     setError("");
@@ -103,7 +151,7 @@ function Chat() {
     setLoading(true);
 
     try {
-      const response = await askQuestion(text);
+      const response = await askQuestion(text, responseMode, activeThreadId);
 
       const assistantMessage = {
         id: response.id,
@@ -117,9 +165,8 @@ function Chat() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-      const updatedHistory = await fetchHistory();
-      setHistory(updatedHistory);
-      setSelectedChatId(response.id);
+      setActiveThreadId(response.thread_id);
+      await loadThreads();
     } catch (err) {
       const message = err?.response?.data?.detail || "Unable to get response from assistant.";
       setError(message);
@@ -128,48 +175,118 @@ function Chat() {
     }
   };
 
-  const handleSelectChat = (chatId) => {
-    setSelectedChatId(chatId);
+  const handleSelectThread = async (threadId) => {
+    setActiveThreadId(threadId);
     setMobileSidebarOpen(false);
+    await loadMessagesForThread(threadId);
+  };
 
-    const record = history.find((h) => h.id === chatId);
-    if (record) {
-      const targetElement = document.getElementById(`q-${chatId}`);
-      if (targetElement) {
-        targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+  const handleRenameThread = async (threadId, newTitle) => {
+    try {
+      await renameThread(threadId, newTitle);
+      await loadThreads();
+    } catch (err) {
+      const message = err?.response?.data?.detail || "Failed to rename thread.";
+      setError(message);
     }
   };
 
-  const handleDeleteChat = async (chatId) => {
+  const handleDeleteThread = async (threadId) => {
     try {
-      await deleteHistoryItem(chatId);
-      const updatedHistory = await fetchHistory();
-      setHistory(updatedHistory);
+      await deleteThread(threadId);
+      const updated = await loadThreads();
 
-      setMessages((prev) => prev.filter((msg) => msg.id !== `q-${chatId}` && msg.id !== `a-${chatId}`));
-
-      if (selectedChatId === chatId) {
-        setSelectedChatId(null);
+      if (activeThreadId === threadId) {
+        if (updated.length > 0) {
+          setActiveThreadId(updated[0].id);
+          await loadMessagesForThread(updated[0].id);
+        } else {
+          handleNewChat();
+        }
       }
     } catch (err) {
-      const message = err?.response?.data?.detail || "Failed to delete chat record.";
+      const message = err?.response?.data?.detail || "Failed to delete thread.";
       setError(message);
+    }
+  };
+
+  const handleDeleteAllHistory = async () => {
+    try {
+      await deleteAllHistory();
+      setThreads([]);
+      setActiveThreadId(null);
+      setMessages([
+        {
+          id: "welcome-1",
+          role: "assistant",
+          text: "Welcome to the Meteorological Training Institute Knowledge Repository. You may query official training literature, weather observation manuals, and meteorological documentations.",
+          references: ["MTI Knowledge Base Index"],
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    } catch (err) {
+      const message = err?.response?.data?.detail || "Failed to clear all chat history.";
+      setError(message);
+      throw err;
     }
   };
 
   const handleNewChat = () => {
     setError("");
-    setSelectedChatId(null);
+    setActiveThreadId(null);
     setMessages([
       {
         id: Date.now(),
         role: "assistant",
-        text: "New conversation initialized. Ask your MTI training question below.",
+        text: "New conversation thread initialized. Please submit your query regarding MTI documentation.",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
     setMobileSidebarOpen(false);
+  };
+
+  const handleEditMessage = async (messageId, newText, newMode) => {
+    setError("");
+
+    // Find the index of the user message being edited
+    const msgIndex = messages.findIndex((m) => m.id === messageId);
+    if (msgIndex === -1) return;
+
+    // Keep only messages before the edited message
+    const previousMessages = messages.slice(0, msgIndex);
+
+    // Create the updated user message
+    const updatedUserMessage = {
+      id: Date.now(),
+      role: "user",
+      text: newText,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setMessages([...previousMessages, updatedUserMessage]);
+    setResponseMode(newMode);
+    setLoading(true);
+
+    try {
+      const response = await askQuestion(newText, newMode, activeThreadId);
+
+      const assistantMessage = {
+        id: response.id,
+        role: "assistant",
+        text: response.answer,
+        references: response.sources || [],
+        timestamp: formatTime(response.timestamp),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+      setActiveThreadId(response.thread_id);
+      await loadThreads();
+    } catch (err) {
+      const message = err?.response?.data?.detail || "Unable to get response from assistant.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -184,14 +301,26 @@ function Chat() {
   };
 
   return (
-    <Box sx={{ height: "100vh", display: "flex", bgcolor: "#F8FAFC" }}>
-      <Box sx={{ display: { xs: "none", md: "block" } }}>
+    <Box sx={{ height: "100vh", display: "flex", bgcolor: "background.default", overflow: "hidden", textAlign: "left" }}>
+      <Box
+        sx={{
+          display: { xs: "none", md: "block" },
+          height: "100%",
+          width: desktopSidebarOpen ? 260 : 0,
+          minWidth: desktopSidebarOpen ? 260 : 0,
+          transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+          overflow: "hidden",
+        }}
+      >
         <Sidebar
           chats={chatList}
-          selectedChatId={selectedChatId}
+          selectedChatId={activeThreadId}
           onNewChat={handleNewChat}
-          onSelectChat={handleSelectChat}
-          onDeleteChat={handleDeleteChat}
+          onSelectChat={handleSelectThread}
+          onDeleteChat={handleDeleteThread}
+          onRenameThread={handleRenameThread}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onToggleCollapse={() => setDesktopSidebarOpen(false)}
         />
       </Box>
 
@@ -202,60 +331,102 @@ function Chat() {
       >
         <Sidebar
           chats={chatList}
-          selectedChatId={selectedChatId}
+          selectedChatId={activeThreadId}
           onNewChat={handleNewChat}
-          onSelectChat={handleSelectChat}
-          onDeleteChat={handleDeleteChat}
+          onSelectChat={handleSelectThread}
+          onDeleteChat={handleDeleteThread}
+          onRenameThread={handleRenameThread}
+          onOpenSettings={() => {
+            setMobileSidebarOpen(false);
+            setSettingsOpen(true);
+          }}
         />
       </Drawer>
 
-      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}>
         <Navbar
-          onToggleSidebar={() => setMobileSidebarOpen(true)}
+          onToggleSidebar={() => {
+            if (window.innerWidth < 900) {
+              setMobileSidebarOpen((prev) => !prev);
+            } else {
+              setDesktopSidebarOpen((prev) => !prev);
+            }
+          }}
+          isSidebarOpen={desktopSidebarOpen}
           userName={user?.name || "MTI User"}
           onLogout={handleLogout}
+          onOpenHistory={() => setHistoryDrawerOpen(true)}
         />
 
         <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 2, sm: 3 } }}>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError("")}>
-              {error}
-            </Alert>
-          )}
+          <Box sx={{ maxWidth: "960px", mx: "auto", width: "100%" }}>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2, borderRadius: "8px", fontSize: "0.8125rem" }} onClose={() => setError("")}>
+                {error}
+              </Alert>
+            )}
 
-          {messages.length === 0 ? (
-            <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center", mt: 4 }}>
-              Start a new conversation by typing your question.
-            </Typography>
-          ) : (
-            <Stack spacing={2.5}>
-              {messages.map((message) => (
-                <div key={message.id} id={message.id}>
+            {messages.length === 0 ? (
+              <Box sx={{ py: 6, px: 2, textAlign: "left" }}>
+                <Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600, color: "text.primary", mb: 0.5 }}>
+                  Welcome to MTI Knowledge Assistant (Beta)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8375rem" }}>
+                  Ask any question regarding MTI meteorological training documentation, weather observation guidelines, and institute courseware.
+                </Typography>
+              </Box>
+            ) : (
+              <Stack spacing={2}>
+                {messages.map((message) => (
+                  <div key={message.id} id={message.id}>
+                    <Message
+                      role={message.role}
+                      text={message.text}
+                      references={message.references}
+                      timestamp={message.timestamp}
+                      messageId={message.id}
+                      onEdit={message.role === "user" ? handleEditMessage : undefined}
+                    />
+                  </div>
+                ))}
+
+                {loading && (
                   <Message
-                    role={message.role}
-                    text={message.text}
-                    references={message.references}
-                    timestamp={message.timestamp}
+                    role="assistant"
+                    isLoading={true}
                   />
-                </div>
-              ))}
-
-              {loading && (
-                <Message
-                  role="assistant"
-                  text="Analyzing training material and retrieving relevant context..."
-                  timestamp={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                />
-              )}
-              <div ref={messagesEndRef} />
-            </Stack>
-          )}
+                )}
+                <div ref={messagesEndRef} />
+              </Stack>
+            )}
+          </Box>
         </Box>
 
-        <ChatInput onSend={handleSend} disabled={loading} />
+        <Box sx={{ maxWidth: "960px", mx: "auto", width: "100%" }}>
+          <ChatInput onSend={handleSend} disabled={loading} mode={responseMode} onModeChange={setResponseMode} />
+        </Box>
       </Box>
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onDeleteAllHistory={handleDeleteAllHistory}
+      />
+
+      <ThreadHistoryDrawer
+        open={historyDrawerOpen}
+        onClose={() => setHistoryDrawerOpen(false)}
+        messages={messages}
+        threadTitle={activeThread?.title || "Active Conversation"}
+        onJumpToMessage={(msgId) => {
+          const el = document.getElementById(msgId);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }}
+      />
     </Box>
   );
 }
 
-export default Chat;
+export default Chat;

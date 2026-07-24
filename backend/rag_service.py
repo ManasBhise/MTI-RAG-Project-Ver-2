@@ -32,7 +32,7 @@ def _normalize_result(result: Any) -> dict:
 	}
 
 
-def generate_answer(question: str) -> dict:
+def generate_answer(question: str, mode: str = "moderate", chat_history: list[dict] | None = None) -> dict:
 	pipeline_module = os.getenv("RAG_PIPELINE_MODULE")
 	pipeline_function = os.getenv("RAG_PIPELINE_FUNCTION", "ask_question")
 
@@ -40,7 +40,13 @@ def generate_answer(question: str) -> dict:
 		try:
 			module = importlib.import_module(pipeline_module)
 			pipeline_fn = getattr(module, pipeline_function)
-			result = pipeline_fn(question)
+			try:
+				result = pipeline_fn(question, mode=mode, chat_history=chat_history)
+			except TypeError:
+				try:
+					result = pipeline_fn(question, mode=mode)
+				except TypeError:
+					result = pipeline_fn(question)
 			return _normalize_result(result)
 		except Exception as exc:
 			logger.exception("RAG pipeline call failed: %s", exc)

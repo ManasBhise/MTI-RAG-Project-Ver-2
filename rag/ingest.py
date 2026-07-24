@@ -31,6 +31,22 @@ def discover_pdf_files(data_dir: Path | None = None) -> list[Path]:
 	return pdf_files
 
 
+import re
+
+
+def _clean_pdf_text(text: str) -> str:
+	if not text:
+		return ""
+	# Strip non-printable PUA font symbols (e.g. \uf072, \uf020) and control codes
+	text = re.sub(r"[\uE000-\uF8FF\uFFF0-\uFFFF]", "", text)
+	# Fix hyphenated words broken across lines: e.g., "tem-\nperature" -> "temperature"
+	text = re.sub(r"(\w+)-\n(\w+)", r"\1\2", text)
+	# Normalize spaces and multi-lines
+	text = re.sub(r"[ \t]+", " ", text)
+	text = re.sub(r"\n{3,}", "\n\n", text)
+	return text.strip()
+
+
 def load_pdf_documents(pdf_files: list[Path]) -> list[Document]:
 	documents: list[Document] = []
 
@@ -43,10 +59,12 @@ def load_pdf_documents(pdf_files: list[Path]) -> list[Document]:
 			continue
 
 		for page in pages:
-			text = (page.page_content or "").strip()
+			raw_text = (page.page_content or "").strip()
+			text = _clean_pdf_text(raw_text)
 			if not text:
 				continue
 
+			page.page_content = text
 			page.metadata["source"] = relative_source
 			page.metadata["file_name"] = pdf_path.name
 			documents.append(page)
@@ -61,6 +79,7 @@ def split_documents(documents: list[Document]) -> list[Document]:
 		chunk_size=CHUNK_SIZE,
 		chunk_overlap=CHUNK_OVERLAP,
 		length_function=len,
+		separators=["\n\n", "\n", ". ", " ", ""],
 	)
 	return splitter.split_documents(documents)
 
