@@ -135,55 +135,266 @@ const cleanTextDisplay = (raw) => {
     .trim();
 };
 
+const renderInlineFormatting = (content, isUser) => {
+  if (!content) return null;
+
+  // Split inline code `code`, bold **text**, and italic *text*
+  const parts = content.split(/(`.*?`|\*\*.*?\*\*|\*.*?\*)/g);
+
+  return parts.map((part, idx) => {
+    if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+      return (
+        <Box
+          key={idx}
+          component="code"
+          sx={{
+            fontFamily: "Consolas, Monaco, monospace",
+            fontSize: "0.825rem",
+            px: 0.75,
+            py: 0.2,
+            mx: 0.2,
+            borderRadius: "4px",
+            bgcolor: isUser ? "rgba(255, 255, 255, 0.2)" : "rgba(37, 99, 235, 0.08)",
+            color: isUser ? "#ffffff" : "#1d4ed8",
+            border: "1px solid",
+            borderColor: isUser ? "rgba(255, 255, 255, 0.3)" : "rgba(37, 99, 235, 0.2)",
+          }}
+        >
+          {part.slice(1, -1)}
+        </Box>
+      );
+    }
+    if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+      return (
+        <strong key={idx} style={{ fontWeight: 700, color: "inherit" }}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length >= 2 && !part.startsWith("**")) {
+      return (
+        <em key={idx} style={{ fontStyle: "italic", color: "inherit" }}>
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    return part;
+  });
+};
+
 function FormattedMarkdown({ text, isUser = false }) {
   if (!text) return null;
 
   const lines = text.split("\n");
+  let inCodeBlock = false;
+  let codeBlockLines = [];
+
+  const elements = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+
+    // Code block toggle ```
+    if (trimmed.startsWith("```")) {
+      if (inCodeBlock) {
+        elements.push(
+          <Box
+            key={`code-${i}`}
+            sx={{
+              my: 1.25,
+              p: 1.75,
+              borderRadius: "10px",
+              bgcolor: isUser ? "rgba(0,0,0,0.25)" : "#1e293b",
+              color: "#f8fafc",
+              fontFamily: "Consolas, Monaco, monospace",
+              fontSize: "0.8375rem",
+              lineHeight: 1.55,
+              overflowX: "auto",
+              whiteSpace: "pre-wrap",
+              border: "1px solid",
+              borderColor: "divider",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+            }}
+          >
+            {codeBlockLines.join("\n")}
+          </Box>
+        );
+        codeBlockLines = [];
+        inCodeBlock = false;
+      } else {
+        inCodeBlock = true;
+        codeBlockLines = [];
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeBlockLines.push(rawLine);
+      continue;
+    }
+
+    // Empty paragraph spacing
+    if (!trimmed) {
+      elements.push(<Box key={`empty-${i}`} sx={{ height: 10 }} />);
+      continue;
+    }
+
+    // Headers (#, ##, ###, #### or **Section Titles**)
+    if (/^#{1,4}\s+/.test(trimmed)) {
+      const level = trimmed.match(/^(#{1,4})\s+/)[1].length;
+      const titleText = trimmed.replace(/^#{1,4}\s+/, "");
+      const fontSize = level === 1 ? "1.1rem" : level === 2 ? "1.025rem" : "0.95rem";
+      const color = level === 1 ? "#2563eb" : level === 2 ? "#1d4ed8" : "text.primary";
+
+      elements.push(
+        <Typography
+          key={`h-${i}`}
+          variant="h6"
+          sx={{
+            fontWeight: 750,
+            fontSize,
+            color: isUser ? "#ffffff" : color,
+            mt: i > 0 ? 2 : 0.5,
+            mb: 1,
+            lineHeight: 1.35,
+            letterSpacing: "0.01em",
+            borderBottom: level <= 2 && !isUser ? "1px solid rgba(37, 99, 235, 0.15)" : "none",
+            pb: level <= 2 ? 0.4 : 0,
+          }}
+        >
+          {renderInlineFormatting(titleText, isUser)}
+        </Typography>
+      );
+      continue;
+    }
+
+    // Blockquotes (> )
+    if (/^>\s+/.test(trimmed)) {
+      const quoteContent = trimmed.replace(/^>\s+/, "");
+      elements.push(
+        <Box
+          key={`quote-${i}`}
+          sx={{
+            pl: 2,
+            py: 0.75,
+            my: 1.25,
+            borderLeft: "3.5px solid",
+            borderColor: isUser ? "#ffffff" : "#2563eb",
+            bgcolor: isUser ? "rgba(255, 255, 255, 0.1)" : "rgba(37, 99, 235, 0.05)",
+            borderRadius: "0 6px 6px 0",
+            fontStyle: "italic",
+          }}
+        >
+          <Typography variant="body2" sx={{ fontSize: "0.8875rem", lineHeight: 1.65, color: isUser ? "#ffffff" : "text.primary" }}>
+            {renderInlineFormatting(quoteContent, isUser)}
+          </Typography>
+        </Box>
+      );
+      continue;
+    }
+
+    // Nested Bullet Points ("* ", "- ", "• ", "  * ", "    - ")
+    const leadingSpaces = rawLine.search(/\S/);
+    const isSubBullet = leadingSpaces >= 2 && /^(?:\*|-|•)\s+/.test(trimmed);
+    const isMainBullet = !isSubBullet && /^(?:\*|-|•)\s+/.test(trimmed);
+
+    if (isMainBullet || isSubBullet) {
+      const bulletContent = trimmed.replace(/^(?:\*|-|•)\s+/, "");
+      const indentLeft = isSubBullet ? (leadingSpaces >= 4 ? 3.5 : 2.25) : 0.5;
+      const bulletMarker = isSubBullet ? "◦" : "•";
+
+      elements.push(
+        <Box key={`bullet-${i}`} sx={{ display: "flex", alignItems: "flex-start", gap: 1, pl: indentLeft, my: 0.45 }}>
+          <Box
+            component="span"
+            sx={{
+              color: isUser ? "#ffffff" : isSubBullet ? "#64748b" : "#2563eb",
+              fontWeight: "bold",
+              fontSize: isSubBullet ? "0.7rem" : "0.825rem",
+              lineHeight: 1.65,
+              userSelect: "none",
+              mt: "1px",
+            }}
+          >
+            {bulletMarker}
+          </Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: isSubBullet ? "0.8625rem" : "0.9rem",
+              lineHeight: 1.68,
+              color: isUser ? "#ffffff" : "text.primary",
+              flex: 1,
+              letterSpacing: "0.005em",
+            }}
+          >
+            {renderInlineFormatting(bulletContent, isUser)}
+          </Typography>
+        </Box>
+      );
+      continue;
+    }
+
+    // Numbered List Items ("1. ", "2. ", "1) ", "2) ")
+    const numMatch = trimmed.match(/^(\d+[\.\)])\s+(.*)/);
+    if (numMatch) {
+      const numLabel = numMatch[1];
+      const numContent = numMatch[2];
+
+      elements.push(
+        <Box key={`num-${i}`} sx={{ display: "flex", alignItems: "flex-start", gap: 1, pl: 0.5, my: 0.5 }}>
+          <Typography
+            component="span"
+            sx={{
+              color: isUser ? "#ffffff" : "#2563eb",
+              fontWeight: 750,
+              fontSize: "0.85rem",
+              lineHeight: 1.68,
+              userSelect: "none",
+              minWidth: 22,
+            }}
+          >
+            {numLabel}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: "0.9rem",
+              lineHeight: 1.68,
+              color: isUser ? "#ffffff" : "text.primary",
+              flex: 1,
+              letterSpacing: "0.005em",
+            }}
+          >
+            {renderInlineFormatting(numContent, isUser)}
+          </Typography>
+        </Box>
+      );
+      continue;
+    }
+
+    // Standard paragraph
+    elements.push(
+      <Typography
+        key={`p-${i}`}
+        variant="body2"
+        sx={{
+          fontSize: "0.9rem",
+          lineHeight: 1.7,
+          color: isUser ? "#ffffff" : "text.primary",
+          letterSpacing: "0.005em",
+          my: 0.4,
+        }}
+      >
+        {renderInlineFormatting(line, isUser)}
+      </Typography>
+    );
+  }
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: 1, textAlign: "left" }}>
-      {lines.map((line, lineIdx) => {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          return <Box key={lineIdx} sx={{ height: 4 }} />;
-        }
-
-        const isBullet = /^(?:\*|-|•)\s+/.test(trimmed);
-        const content = isBullet ? trimmed.replace(/^(?:\*|-|•)\s+/, "") : line;
-
-        // Parse **bold** markers inside line
-        const parts = content.split(/(\*\*.*?\*\*)/g);
-
-        const renderedLine = parts.map((part, pIdx) => {
-          if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
-            return (
-              <strong key={pIdx} style={{ fontWeight: 650, color: "inherit" }}>
-                {part.slice(2, -2)}
-              </strong>
-            );
-          }
-          return part;
-        });
-
-        if (isBullet) {
-          return (
-            <Box key={lineIdx} sx={{ display: "flex", alignItems: "flex-start", gap: 1, pl: 0.5, my: 0.15 }}>
-              <Box component="span" sx={{ color: isUser ? "#ffffff" : "#2563eb", fontWeight: "bold", fontSize: "0.75rem", lineHeight: 1.6, userSelect: "none" }}>
-                •
-              </Box>
-              <Typography variant="body2" sx={{ fontSize: "0.8375rem", lineHeight: 1.6, color: isUser ? "#ffffff" : "text.primary", flex: 1 }}>
-                {renderedLine}
-              </Typography>
-            </Box>
-          );
-        }
-
-        return (
-          <Typography key={lineIdx} variant="body2" sx={{ fontSize: "0.8375rem", lineHeight: 1.6, color: isUser ? "#ffffff" : "text.primary" }}>
-            {renderedLine}
-          </Typography>
-        );
-      })}
+    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, textAlign: "left" }}>
+      {elements}
     </Box>
   );
 }

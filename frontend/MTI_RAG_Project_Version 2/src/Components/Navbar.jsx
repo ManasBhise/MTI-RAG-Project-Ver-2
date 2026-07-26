@@ -72,7 +72,18 @@ function HistoryIcon() {
   );
 }
 
-function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLogout, onOpenHistory, onDownloadConversation }) {
+function VoiceAssistantIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10a7 7 0 0 0 14 0" />
+      <line x1="12" y1="17" x2="12" y2="22" />
+      <line x1="8" y1="22" x2="16" y2="22" />
+    </svg>
+  );
+}
+
+function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLogout, onOpenHistory, onDownloadConversation, onOpenVoiceControl }) {
   const { darkMode, toggleDarkMode } = useThemeMode();
 
   return (
@@ -158,6 +169,34 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+
+          {onOpenVoiceControl && (
+            <Tooltip title="Voice Command Center — Control app features hands-free" placement="bottom">
+              <Button
+                variant="contained"
+                size="small"
+                onClick={onOpenVoiceControl}
+                startIcon={<VoiceAssistantIcon />}
+                sx={{
+                  borderRadius: "20px",
+                  fontSize: "0.75rem",
+                  fontWeight: 650,
+                  py: 0.4,
+                  px: 1.5,
+                  textTransform: "none",
+                  background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                  color: "#ffffff",
+                  boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)",
+                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.35)",
+                  },
+                }}
+              >
+                Voice Control
+              </Button>
+            </Tooltip>
+          )}
 
           <Tooltip title={darkMode ? "Switch to Light mode" : "Switch to Dark mode"} placement="bottom">
             <IconButton

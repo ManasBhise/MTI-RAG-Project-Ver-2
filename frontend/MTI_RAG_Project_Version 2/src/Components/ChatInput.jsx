@@ -38,7 +38,7 @@ const MODES = [
   { id: "research", label: "🔬 In-Depth Research", hint: "Technical equations, NWP & deep domain analysis" },
 ];
 
-function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange }) {
+function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange, onVoiceCommand }) {
   const [value, setValue] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
@@ -85,6 +85,15 @@ function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange }
         }
         if (transcript) {
           setValue(transcript);
+          if (onVoiceCommand && onVoiceCommand(transcript)) {
+            setValue("");
+            try {
+              recognition.stop();
+            } catch {
+              // Ignored
+            }
+            setIsListening(false);
+          }
         }
       };
 

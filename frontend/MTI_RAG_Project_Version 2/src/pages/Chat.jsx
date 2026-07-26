@@ -7,6 +7,8 @@ import Message from "../Components/Message";
 import ChatInput from "../Components/ChatInput";
 import SettingsModal from "../Components/SettingsModal";
 import ThreadHistoryDrawer from "../Components/ThreadHistoryDrawer";
+import VoiceControlModal from "../Components/VoiceControlModal";
+import { useThemeMode } from "../App";
 import { exportFullConversationToPdf } from "../utils/exportPdf";
 import {
   askQuestion,
@@ -25,12 +27,15 @@ function Chat() {
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
 
+  const { toggleDarkMode } = useThemeMode();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
+  const [voiceControlOpen, setVoiceControlOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [voiceActionToast, setVoiceActionToast] = useState("");
   const [activeThreadId, setActiveThreadId] = useState(null);
   const [responseMode, setResponseMode] = useState("moderate");
   const [threads, setThreads] = useState([]);
@@ -149,8 +154,148 @@ function Chat() {
     }
   };
 
+  const checkAndExecuteVoiceCommand = (rawText) => {
+    if (!rawText) return false;
+    const clean = rawText.toLowerCase().trim().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "");
+
+    // 1. New Conversation Commands
+    const newChatKeywords = [
+      "new conversation",
+      "start new conversation",
+      "new chat",
+      "start new chat",
+      "create new conversation",
+      "clear chat",
+      "start a new chat",
+      "start a new conversation",
+      "reset chat",
+      "clear conversation",
+      "new thread",
+      "start new thread",
+    ];
+    if (newChatKeywords.some((kw) => clean.includes(kw))) {
+      handleNewChat();
+      setVoiceActionToast("🎙️ Voice Command Executed: Started a new conversation thread.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 2. Open Settings Commands
+    const settingsKeywords = [
+      "open settings",
+      "show settings",
+      "open preferences",
+      "show preferences",
+      "open setting",
+      "show setting",
+      "view settings",
+      "settings",
+      "setting",
+      "preferences",
+    ];
+    if (settingsKeywords.some((kw) => clean.includes(kw))) {
+      setSettingsOpen(true);
+      setVoiceActionToast("🎙️ Voice Command Executed: Opened Settings & Personalization.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 3. Open History Commands
+    const historyKeywords = [
+      "open history",
+      "show history",
+      "view history",
+      "conversation history",
+      "open drawer",
+      "show drawer",
+      "chat history",
+      "open threads",
+      "history",
+    ];
+    if (historyKeywords.some((kw) => clean.includes(kw))) {
+      setHistoryDrawerOpen(true);
+      setVoiceActionToast("🎙️ Voice Command Executed: Opened Conversation History.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 4. Download Conversation PDF
+    const downloadKeywords = [
+      "download conversation",
+      "export pdf",
+      "download pdf",
+      "save pdf",
+      "export conversation",
+      "save transcript",
+      "download transcript",
+    ];
+    if (downloadKeywords.some((kw) => clean.includes(kw))) {
+      handleDownloadConversation();
+      setVoiceActionToast("🎙️ Voice Command Executed: Downloading conversation transcript as PDF.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 5. Toggle Dark Mode Commands
+    const themeKeywords = ["toggle dark mode", "dark mode", "light mode", "switch theme", "change theme", "toggle theme"];
+    if (themeKeywords.some((kw) => clean.includes(kw))) {
+      toggleDarkMode();
+      setVoiceActionToast("🎙️ Voice Command Executed: Switched Theme mode.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 6. Response Mode Commands
+    if (clean.includes("basic mode") || clean.includes("set mode to basic") || clean.includes("simple mode")) {
+      setResponseMode("basic");
+      setVoiceActionToast("🎙️ Voice Command Executed: Switched response mode to 🌱 Basic Language.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+    if (clean.includes("moderate mode") || clean.includes("set mode to moderate") || clean.includes("standard mode")) {
+      setResponseMode("moderate");
+      setVoiceActionToast("🎙️ Voice Command Executed: Switched response mode to ⚖️ Moderate Level.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+    if (clean.includes("research mode") || clean.includes("set mode to research") || clean.includes("in-depth mode") || clean.includes("expert mode")) {
+      setResponseMode("research");
+      setVoiceActionToast("🎙️ Voice Command Executed: Switched response mode to 🔬 In-Depth Research.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 7. Scroll Commands
+    if (clean.includes("scroll to top") || clean.includes("go to top") || clean.includes("top of page")) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setVoiceActionToast("🎙️ Voice Command Executed: Scrolled to top.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+    if (clean.includes("scroll to bottom") || clean.includes("go to bottom") || clean.includes("bottom of page")) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setVoiceActionToast("🎙️ Voice Command Executed: Scrolled to bottom.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 8. Logout Commands
+    const logoutKeywords = ["log out", "logout", "sign out", "exit account"];
+    if (logoutKeywords.some((kw) => clean.includes(kw))) {
+      setVoiceActionToast("🎙️ Voice Command Executed: Logging out...");
+      setTimeout(() => handleLogout(), 1200);
+      return true;
+    }
+
+    return false;
+  };
+
   const handleSend = async (text) => {
     setError("");
+
+    if (checkAndExecuteVoiceCommand(text)) {
+      return;
+    }
 
     const userMessage = {
       id: Date.now(),
@@ -397,10 +542,21 @@ function Chat() {
           onLogout={handleLogout}
           onOpenHistory={() => setHistoryDrawerOpen(true)}
           onDownloadConversation={handleDownloadConversation}
+          onOpenVoiceControl={() => setVoiceControlOpen(true)}
         />
 
         <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 2, sm: 3 } }}>
           <Box sx={{ maxWidth: "960px", mx: "auto", width: "100%" }}>
+            {voiceActionToast && (
+              <Alert
+                severity="info"
+                sx={{ mb: 2, borderRadius: "10px", fontSize: "0.8375rem", bgcolor: "rgba(37, 99, 235, 0.12)", color: "#1d4ed8", fontWeight: 600, border: "1px solid #bfdbfe" }}
+                onClose={() => setVoiceActionToast("")}
+              >
+                {voiceActionToast}
+              </Alert>
+            )}
+
             {error && (
               <Alert severity="error" sx={{ mb: 2, borderRadius: "8px", fontSize: "0.8125rem" }} onClose={() => setError("")}>
                 {error}
@@ -460,7 +616,13 @@ function Chat() {
         </Box>
 
         <Box sx={{ maxWidth: "1350px", mx: "auto", width: "100%", px: { xs: 1, sm: 2 } }}>
-          <ChatInput onSend={handleSend} disabled={loading} mode={responseMode} onModeChange={setResponseMode} />
+          <ChatInput
+            onSend={handleSend}
+            disabled={loading}
+            mode={responseMode}
+            onModeChange={setResponseMode}
+            onVoiceCommand={checkAndExecuteVoiceCommand}
+          />
         </Box>
       </Box>
 
@@ -482,6 +644,11 @@ function Chat() {
             el.scrollIntoView({ behavior: "smooth", block: "center" });
           }
         }}
+      />
+      <VoiceControlModal
+        open={voiceControlOpen}
+        onClose={() => setVoiceControlOpen(false)}
+        onExecuteCommand={checkAndExecuteVoiceCommand}
       />
     </Box>
   );
