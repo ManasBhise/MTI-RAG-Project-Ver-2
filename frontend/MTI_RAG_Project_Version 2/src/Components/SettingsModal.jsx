@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -9,18 +9,33 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   FormControlLabel,
   IconButton,
+  MenuItem,
+  Select,
+  Stack,
   Switch,
+  TextField,
   Typography,
 } from "@mui/material";
 import { useThemeMode } from "../App";
+import { fetchUserProfile, getStoredUser, saveSession, updateUserProfile } from "../services/api";
 
 function SettingsIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="3"></circle>
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  );
+}
+
+function UserPersonaIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+      <circle cx="12" cy="7" r="4"></circle>
     </svg>
   );
 }
@@ -69,15 +84,91 @@ function SunIcon() {
   );
 }
 
+const ROLES = [
+  "Trainee Meteorologist",
+  "Operational Forecaster",
+  "Research Scientist / Academic",
+  "Numerical Weather Prediction (NWP) Specialist",
+  "Meteorology Student",
+  "Aviation Weather Specialist",
+  "Hydrometeorologist",
+  "Other",
+];
+
+const TONES = [
+  { id: "moderate", label: "Standard & Balanced (Trainee Level)", desc: "Clear technical terms with explanations" },
+  { id: "basic", label: "Simple & Beginner-Friendly", desc: "Everyday language, clear analogies" },
+  { id: "research", label: "Expert & Research Level", desc: "In-depth equations, rigorous analysis, bullet points" },
+];
+
 function SettingsModal({ open, onClose, onDeleteAllHistory }) {
   const { darkMode, toggleDarkMode } = useThemeMode();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const storedUser = getStoredUser() || {};
+  const [name, setName] = useState(storedUser.name || "");
+  const [role, setRole] = useState(storedUser.role || "Trainee Meteorologist");
+  const [organization, setOrganization] = useState(storedUser.organization || "India Meteorological Department (IMD)");
+  const [responseTone, setResponseTone] = useState(storedUser.response_tone || "moderate");
+  const [customInstructions, setCustomInstructions] = useState(storedUser.custom_instructions || "");
+  const [useEmojis, setUseEmojis] = useState(storedUser.use_emojis ?? true);
+
+  useEffect(() => {
+    if (open) {
+      setSuccessMessage("");
+      setErrorMessage("");
+      const loadProfile = async () => {
+        try {
+          const profile = await fetchUserProfile();
+          if (profile) {
+            setName(profile.name || "");
+            setRole(profile.role || "Trainee Meteorologist");
+            setOrganization(profile.organization || "India Meteorological Department (IMD)");
+            setResponseTone(profile.response_tone || "moderate");
+            setCustomInstructions(profile.custom_instructions || "");
+            setUseEmojis(profile.use_emojis ?? true);
+            saveSession({ user: profile });
+          }
+        } catch {
+          // Fall back to stored session values
+        }
+      };
+      loadProfile();
+    }
+  }, [open]);
+
+  const handleSavePersonalization = async () => {
+    setSavingProfile(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const updatedUser = await updateUserProfile({
+        name: name.trim(),
+        role: role.trim(),
+        organization: organization.trim(),
+        response_tone: responseTone,
+        custom_instructions: customInstructions.trim(),
+        use_emojis: useEmojis,
+      });
+
+      saveSession({ user: updatedUser });
+      setSuccessMessage("Personalization preferences saved successfully!");
+    } catch (err) {
+      setErrorMessage(err?.response?.data?.detail || "Failed to save personalization settings.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const handleClearAll = async () => {
     setDeleting(true);
     setSuccessMessage("");
+    setErrorMessage("");
     try {
       if (onDeleteAllHistory) {
         await onDeleteAllHistory();
@@ -85,7 +176,7 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
       setSuccessMessage("All conversation history cleared successfully.");
       setConfirmingDelete(false);
     } catch {
-      // Error handled in parent
+      setErrorMessage("Failed to clear conversation history.");
     } finally {
       setDeleting(false);
     }
@@ -95,11 +186,11 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="xs"
+      maxWidth="sm"
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: "12px",
+          borderRadius: "14px",
           p: 0.5,
           textAlign: "left",
         },
@@ -110,8 +201,8 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
           <Box sx={{ color: "#2563eb", display: "flex" }}>
             <SettingsIcon />
           </Box>
-          <Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600 }}>
-            Settings & Preferences
+          <Typography variant="h6" sx={{ fontSize: "1.05rem", fontWeight: 700 }}>
+            Assistant Personalization & Settings
           </Typography>
         </Box>
         <IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
@@ -121,16 +212,149 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
 
       <Divider />
 
-      <DialogContent sx={{ py: 2 }}>
+      <DialogContent sx={{ py: 2.5, px: 3, maxHeight: "75vh", overflowY: "auto" }}>
         {successMessage && (
           <Alert severity="success" sx={{ mb: 2, fontSize: "0.8125rem", py: 0.25 }}>
             {successMessage}
           </Alert>
         )}
+        {errorMessage && (
+          <Alert severity="error" sx={{ mb: 2, fontSize: "0.8125rem", py: 0.25 }}>
+            {errorMessage}
+          </Alert>
+        )}
 
-        {/* Theme & Appearance */}
+        {/* Section 1: User Profile & Personalization */}
+        <Box sx={{ mb: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+            <Box sx={{ color: "#2563eb", display: "flex" }}>
+              <UserPersonaIcon />
+            </Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: "0.9rem", color: "text.primary" }}>
+              Personalization & Response Instructions
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.775rem", mb: 2, lineHeight: 1.4 }}>
+            Customize your professional background and instructions. The assistant will use these settings for every response.
+          </Typography>
+
+          <Stack spacing={2}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+              <TextField
+                label="Full Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                size="small"
+                fullWidth
+              />
+              <FormControl size="small" fullWidth>
+                <Select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  displayEmpty
+                  sx={{ fontSize: "0.8375rem" }}
+                >
+                  {ROLES.map((r) => (
+                    <MenuItem key={r} value={r} sx={{ fontSize: "0.8125rem" }}>
+                      {r}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            <TextField
+              label="Organization / Department"
+              value={organization}
+              onChange={(e) => setOrganization(e.target.value)}
+              placeholder="e.g. India Meteorological Department (IMD), MTI Pune"
+              size="small"
+              fullWidth
+            />
+
+            <FormControl size="small" fullWidth>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, mb: 0.5 }}>
+                Default Response Tone & Style:
+              </Typography>
+              <Select
+                value={responseTone}
+                onChange={(e) => setResponseTone(e.target.value)}
+                sx={{ fontSize: "0.8375rem" }}
+              >
+                {TONES.map((t) => (
+                  <MenuItem key={t.id} value={t.id} sx={{ fontSize: "0.8125rem" }}>
+                    <strong>{t.label}</strong> — {t.desc}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, mb: 0.5, display: "block" }}>
+                Custom Assistant Instructions (Used for every query):
+              </Typography>
+              <TextField
+                multiline
+                rows={3}
+                value={customInstructions}
+                onChange={(e) => setCustomInstructions(e.target.value)}
+                placeholder="e.g., Always emphasize numerical weather prediction (NWP) applications and include key mathematical formulas. Use clear bullet points and operational summary points."
+                size="small"
+                fullWidth
+                sx={{ "& .MuiInputBase-input": { fontSize: "0.8125rem" } }}
+              />
+            </Box>
+
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pt: 0.5, px: 0.5, bgcolor: "action.hover", p: 1.25, borderRadius: "8px" }}>
+              <Box>
+                <Typography variant="body2" sx={{ fontSize: "0.8375rem", fontWeight: 600, color: "text.primary" }}>
+                  Use Emojis in Assistant Responses 🌤️
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.725rem", display: "block" }}>
+                  Include expressive meteorological emojis for section titles, key takeaways, and bullet points.
+                </Typography>
+              </Box>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={useEmojis}
+                    onChange={(e) => setUseEmojis(e.target.checked)}
+                    size="small"
+                    color="primary"
+                  />
+                }
+                label=""
+                sx={{ m: 0 }}
+              />
+            </Box>
+
+            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleSavePersonalization}
+                disabled={savingProfile}
+                sx={{
+                  borderRadius: "8px",
+                  fontWeight: 600,
+                  px: 2.5,
+                  py: 0.75,
+                  fontSize: "0.8125rem",
+                  bgcolor: "#2563eb",
+                  textTransform: "none",
+                }}
+              >
+                {savingProfile ? <CircularProgress size={16} color="inherit" /> : "Save Personalization"}
+              </Button>
+            </Box>
+          </Stack>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Section 2: Theme & Appearance */}
         <Box sx={{ mb: 2.5 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: "0.8125rem", color: "text.primary", mb: 0.5 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: "0.85rem", color: "text.primary", mb: 0.5 }}>
             Theme & Appearance
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 1 }}>
@@ -138,7 +362,7 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
               <Box sx={{ color: darkMode ? "#fbbf24" : "#64748b", display: "flex" }}>
                 {darkMode ? <MoonIcon /> : <SunIcon />}
               </Box>
-              <Typography variant="body2" sx={{ fontSize: "0.8125rem", fontWeight: 500 }}>
+              <Typography variant="body2" sx={{ fontSize: "0.8375rem", fontWeight: 500 }}>
                 Dark Mode
               </Typography>
             </Box>
@@ -157,11 +381,11 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
           </Box>
         </Box>
 
-        <Divider sx={{ my: 1.5 }} />
+        <Divider sx={{ my: 2 }} />
 
-        {/* Data & History */}
+        {/* Section 3: Data & Chat History */}
         <Box sx={{ pt: 0.5 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: "0.8125rem", color: "text.primary", mb: 0.5 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: "0.85rem", color: "text.primary", mb: 0.5 }}>
             Data & Chat History
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.775rem", mb: 1.5 }}>
@@ -236,8 +460,8 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2, pt: 0 }}>
-        <Button variant="contained" size="small" onClick={onClose} sx={{ borderRadius: "8px", fontWeight: 600, px: 2.5, bgcolor: "#2563eb" }}>
-          Done
+        <Button variant="outlined" size="small" onClick={onClose} sx={{ borderRadius: "8px", fontWeight: 600, px: 2.5 }}>
+          Close
         </Button>
       </DialogActions>
     </Dialog>

@@ -16,6 +16,7 @@ def _normalize_result(result: Any) -> dict:
 	if isinstance(result, dict):
 		answer = str(result.get("answer", "")).strip()
 		sources = result.get("sources", []) or []
+		images = result.get("images", []) or []
 		if isinstance(sources, list):
 			normalized_sources = [str(item) for item in sources]
 		else:
@@ -24,16 +25,23 @@ def _normalize_result(result: Any) -> dict:
 		return {
 			"answer": answer or "No answer generated.",
 			"sources": normalized_sources,
+			"images": images,
 		}
 
 	return {
 		"answer": str(result).strip() or "No answer generated.",
 		"sources": [],
+		"images": [],
 	}
 
 
-def generate_answer(question: str, mode: str = "moderate", chat_history: list[dict] | None = None) -> dict:
-	pipeline_module = os.getenv("RAG_PIPELINE_MODULE")
+def generate_answer(
+	question: str,
+	mode: str = "moderate",
+	chat_history: list[dict] | None = None,
+	user_profile: dict | None = None,
+) -> dict:
+	pipeline_module = os.getenv("RAG_PIPELINE_MODULE", "rag.pipeline")
 	pipeline_function = os.getenv("RAG_PIPELINE_FUNCTION", "ask_question")
 
 	if pipeline_module:
@@ -41,12 +49,15 @@ def generate_answer(question: str, mode: str = "moderate", chat_history: list[di
 			module = importlib.import_module(pipeline_module)
 			pipeline_fn = getattr(module, pipeline_function)
 			try:
-				result = pipeline_fn(question, mode=mode, chat_history=chat_history)
+				result = pipeline_fn(question, mode=mode, chat_history=chat_history, user_profile=user_profile)
 			except TypeError:
 				try:
-					result = pipeline_fn(question, mode=mode)
+					result = pipeline_fn(question, mode=mode, chat_history=chat_history)
 				except TypeError:
-					result = pipeline_fn(question)
+					try:
+						result = pipeline_fn(question, mode=mode)
+					except TypeError:
+						result = pipeline_fn(question)
 			return _normalize_result(result)
 		except Exception as exc:
 			logger.exception("RAG pipeline call failed: %s", exc)
@@ -54,4 +65,5 @@ def generate_answer(question: str, mode: str = "moderate", chat_history: list[di
 	return {
 		"answer": "I can help with MTI training questions. Configure the RAG pipeline module to get grounded document answers.",
 		"sources": ["RAG pipeline not configured"],
+		"images": [],
 	}

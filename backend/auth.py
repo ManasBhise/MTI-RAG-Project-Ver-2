@@ -48,6 +48,20 @@ class UserResponse(BaseModel):
 	id: int
 	name: str
 	email: EmailStr
+	role: str | None = "Trainee Meteorologist"
+	organization: str | None = "India Meteorological Department (IMD)"
+	response_tone: str | None = "moderate"
+	custom_instructions: str | None = ""
+	use_emojis: bool = True
+
+
+class UpdateProfileRequest(BaseModel):
+	name: str | None = Field(default=None, max_length=120)
+	role: str | None = Field(default=None, max_length=120)
+	organization: str | None = Field(default=None, max_length=150)
+	response_tone: str | None = Field(default="moderate", max_length=50)
+	custom_instructions: str | None = Field(default="", max_length=2000)
+	use_emojis: bool | None = True
 
 
 class LoginResponse(BaseModel):
@@ -210,3 +224,33 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
 @router.post("/logout", response_model=LogoutResponse)
 def logout(_: User = Depends(get_current_user)):
 	return {"message": "Logged out successfully"}
+
+
+@router.get("/user/profile", response_model=UserResponse)
+def get_user_profile(current_user: User = Depends(get_current_user)):
+	return current_user
+
+
+@router.put("/user/profile", response_model=UserResponse)
+def update_user_profile(
+	payload: UpdateProfileRequest,
+	db: Session = Depends(get_db),
+	current_user: User = Depends(get_current_user),
+):
+	if payload.name is not None:
+		current_user.name = payload.name.strip()
+	if payload.role is not None:
+		current_user.role = payload.role.strip()
+	if payload.organization is not None:
+		current_user.organization = payload.organization.strip()
+	if payload.response_tone is not None:
+		current_user.response_tone = payload.response_tone.strip()
+	if payload.custom_instructions is not None:
+		current_user.custom_instructions = payload.custom_instructions.strip()
+	if payload.use_emojis is not None:
+		current_user.use_emojis = payload.use_emojis
+
+	db.commit()
+	db.refresh(current_user)
+	return current_user
+

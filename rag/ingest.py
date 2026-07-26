@@ -47,8 +47,23 @@ def _clean_pdf_text(text: str) -> str:
 	return text.strip()
 
 
+import json
+import fitz
+
+from rag.config import (
+	CHUNK_OVERLAP,
+	CHUNK_SIZE,
+	DATA_DIR,
+	EMBEDDING_MODEL,
+	EXTRACTED_IMAGES_DIR,
+	PROJECT_ROOT,
+	VECTOR_STORE_DIR,
+)
+
+
 def load_pdf_documents(pdf_files: list[Path]) -> list[Document]:
 	documents: list[Document] = []
+	EXTRACTED_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 	for pdf_path in pdf_files:
 		relative_source = pdf_path.relative_to(PROJECT_ROOT).as_posix()
@@ -58,7 +73,18 @@ def load_pdf_documents(pdf_files: list[Path]) -> list[Document]:
 			logger.warning("Skipping unreadable PDF %s: %s", relative_source, exc)
 			continue
 
-		for page in pages:
+		# Open with PyMuPDF for image extraction
+		fitz_doc = None
+		try:
+			fitz_doc = fitz.open(str(pdf_path))
+		except Exception as exc:
+			logger.warning("Could not open %s with PyMuPDF for image extraction: %s", relative_source, exc)
+
+		pdf_slug = re.sub(r"[^a-zA-Z0-9_-]", "_", pdf_path.stem)
+		pdf_image_dir = EXTRACTED_IMAGES_DIR / pdf_slug
+		pdf_image_dir.mkdir(parents=True, exist_ok=True)
+
+		for page_idx, page in enumerate(pages):
 			raw_text = (page.page_content or "").strip()
 			text = _clean_pdf_text(raw_text)
 			if not text:
@@ -67,7 +93,40 @@ def load_pdf_documents(pdf_files: list[Path]) -> list[Document]:
 			page.page_content = text
 			page.metadata["source"] = relative_source
 			page.metadata["file_name"] = pdf_path.name
+
+			# Extract images from this page if fitz_doc is open
+			extracted_urls = []
+			if fitz_doc and page_idx < len(fitz_doc):
+				try:
+					fitz_page = fitz_doc[page_idx]
+					image_list = fitz_page.get_images(full=True)
+					for img_idx, img_info in enumerate(image_list):
+						xref = img_info[0]
+						base_img = fitz_doc.extract_image(xref)
+						img_bytes = base_img["image"]
+						img_ext = base_img["ext"]
+						width = base_img.get("width", 0)
+						height = base_img.get("height", 0)
+
+						# Ignore tiny icons/logos
+						if width > 0 and height > 0 and (width < 90 or height < 90):
+							continue
+
+						img_filename = f"page_{page_idx + 1}_img_{img_idx + 1}.{img_ext}"
+						img_save_path = pdf_image_dir / img_filename
+						with open(img_save_path, "wb") as f:
+							f.write(img_bytes)
+
+						rel_url = f"/static/extracted_images/{pdf_slug}/{img_filename}"
+						extracted_urls.append(rel_url)
+				except Exception as exc:
+					logger.debug("Failed extracting images from page %d of %s: %s", page_idx + 1, relative_source, exc)
+
+			page.metadata["extracted_images"] = json.dumps(extracted_urls)
 			documents.append(page)
+
+		if fitz_doc:
+			fitz_doc.close()
 
 		logger.info("Loaded %s (%d pages with text)", relative_source, len(pages))
 

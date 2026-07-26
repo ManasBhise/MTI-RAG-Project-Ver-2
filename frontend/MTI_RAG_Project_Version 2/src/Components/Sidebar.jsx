@@ -72,7 +72,18 @@ function SidebarCollapseIcon() {
   );
 }
 
-function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, onDeleteChat, onRenameThread, onOpenSettings, onToggleCollapse }) {
+function PdfDownloadIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+      <path d="M12 18v-6"></path>
+      <path d="m9 15 3 3 3-3"></path>
+    </svg>
+  );
+}
+
+function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, onDeleteChat, onRenameThread, onOpenSettings, onToggleCollapse, onDownloadConversation }) {
   const [editingThreadId, setEditingThreadId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
 
@@ -255,6 +266,29 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
 
                     {chat.id !== "current" && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+                        {onDownloadConversation && isSelected && (
+                          <Tooltip title="Export conversation as PDF" placement="top">
+                            <IconButton
+                              size="small"
+                              className="action-btn"
+                              aria-label="export pdf"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDownloadConversation();
+                              }}
+                              sx={{
+                                p: 0.4,
+                                opacity: 0,
+                                transition: "opacity 0.2s",
+                                color: "text.secondary",
+                                "&:hover": { color: "#2563eb" },
+                              }}
+                            >
+                              <PdfDownloadIcon />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+
                         {onRenameThread && (
                           <IconButton
                             size="small"

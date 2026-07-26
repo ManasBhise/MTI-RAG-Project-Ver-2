@@ -1,13 +1,16 @@
+import json
 import logging
 import os
 from functools import lru_cache
-
+from pathlib import Path
 
 from groq import Groq
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
+from PIL import Image
 
 from rag.config import (
+	EXTRACTED_IMAGES_DIR,
 	GROQ_API_KEY,
 	GROQ_MODEL,
 	SYSTEM_PROMPT,
@@ -17,6 +20,26 @@ from rag.config import (
 from rag.ingest import get_embeddings
 
 logger = logging.getLogger(__name__)
+
+
+def _is_substantive_diagram(img_path: Path) -> bool:
+	if not img_path.exists():
+		return False
+	# Must be at least 25 KB to filter out logos, bullet icons, and header graphics
+	size = img_path.stat().st_size
+	if size < 25000:
+		return False
+	# Exclude small cover page logos (e.g. page_1_img_* under 45KB)
+	if img_path.name.startswith("page_1_") and size < 45000:
+		return False
+	try:
+		with Image.open(img_path) as img:
+			w, h = img.size
+			if w < 250 or h < 180:
+				return False
+	except Exception:
+		pass
+	return True
 
 
 @lru_cache(maxsize=1)
@@ -95,15 +118,15 @@ def _is_junk_text(text: str) -> bool:
 	return False
 
 
-def _retrieve_context(question: str) -> tuple[str, list[str]]:
+def _retrieve_context(question: str) -> tuple[str, list[str], list[dict]]:
 	if not _is_meteorology_or_mti_query(question):
-		return "", []
+		return "", [], []
 
 	vector_store = _load_vector_store()
 	results = vector_store.similarity_search_with_score(question, k=TOP_K)
 
 	if not results:
-		return "", []
+		return "", [], []
 
 	# Hybrid Reranking: combine vector similarity with keyword match ratio
 	scored_results = []
@@ -125,19 +148,21 @@ def _retrieve_context(question: str) -> tuple[str, list[str]]:
 		scored_results.append((hybrid_score, document))
 
 	if not scored_results:
-		return "", []
+		return "", [], []
 
 	# Sort candidates descending by hybrid score
 	scored_results.sort(key=lambda item: item[0], reverse=True)
 
 	if scored_results[0][0] < 0.44:
-		return "", []
+		return "", [], []
 
 	top_candidates = [doc for _score, doc in scored_results[:7]]
 
 	context_blocks: list[str] = []
 	sources: list[str] = []
+	images: list[dict] = []
 	seen_sources: set[str] = set()
+	seen_images: set[str] = set()
 
 	for index, document in enumerate(top_candidates, start=1):
 		source_label = _format_source(document.metadata)
@@ -147,7 +172,71 @@ def _retrieve_context(question: str) -> tuple[str, list[str]]:
 			seen_sources.add(source_label)
 			sources.append(source_label)
 
-	return "\n\n".join(context_blocks), sources
+		# 1. Extract attached image URLs from chunk metadata
+		raw_imgs = document.metadata.get("extracted_images")
+		if raw_imgs:
+			try:
+				img_urls = json.loads(raw_imgs) if isinstance(raw_imgs, str) else raw_imgs
+				for url in img_urls:
+					if url not in seen_images:
+						seen_images.add(url)
+						images.append({
+							"url": url,
+							"source": source_label,
+							"caption": f"Document Figure ({source_label})",
+						})
+			except Exception:
+				pass
+
+		# 2. Page-matched and Document figure lookup from EXTRACTED_IMAGES_DIR (substantive diagrams only)
+		file_name = document.metadata.get("file_name") or document.metadata.get("source", "")
+		if file_name:
+			pdf_stem = Path(file_name).stem
+			pdf_slug = re.sub(r"[^a-zA-Z0-9_-]", "_", pdf_stem)
+			pdf_img_dir = EXTRACTED_IMAGES_DIR / pdf_slug
+			page_num = document.metadata.get("page")
+
+			if pdf_img_dir.exists() and pdf_img_dir.is_dir():
+				candidates: list[Path] = []
+				if page_num is not None:
+					try:
+						p_idx = int(page_num) + 1
+						# Check exact page first
+						for img_f in pdf_img_dir.glob(f"page_{p_idx}_img_*"):
+							if _is_substantive_diagram(img_f):
+								candidates.append(img_f)
+
+						# Check adjacent pages (+/- 1)
+						if not candidates:
+							for adj in [p_idx - 1, p_idx + 1]:
+								if adj > 0:
+									for img_f in pdf_img_dir.glob(f"page_{adj}_img_*"):
+										if _is_substantive_diagram(img_f):
+											candidates.append(img_f)
+					except ValueError:
+						pass
+
+				# Fallback to any substantive figures in this document folder
+				if not candidates:
+					for img_f in pdf_img_dir.glob("page_*"):
+						if _is_substantive_diagram(img_f):
+							candidates.append(img_f)
+
+				# Deduplicate & sort candidates by file size descending (richest diagrams first)
+				unique_candidates = sorted(list(dict.fromkeys(candidates)), key=lambda f: f.stat().st_size, reverse=True)
+
+				for img_file in unique_candidates[:2]:
+					rel_url = f"/static/extracted_images/{pdf_slug}/{img_file.name}"
+					if rel_url not in seen_images:
+						seen_images.add(rel_url)
+						pg_label = f", Page {int(page_num) + 1}" if page_num is not None else ""
+						images.append({
+							"url": rel_url,
+							"source": source_label,
+							"caption": f"MTI Document Figure ({pdf_stem}{pg_label})",
+						})
+
+	return "\n\n".join(context_blocks), sources, images
 
 
 import re
@@ -264,7 +353,37 @@ def _call_groq(client: Groq, messages: list[dict], preferred_model: str) -> str:
 	return ""
 
 
-def _generate_answer(question: str, context: str, mode: str = "moderate", chat_history: list[dict] | None = None) -> str:
+def _is_image_generation_requested(question: str) -> bool:
+	q_lower = question.lower()
+	keywords = [
+		"generate image", "generate diagram", "create image", "create diagram",
+		"draw", "illustration", "visualize", "show diagram", "show image",
+		"make an image", "make a diagram", "explain with image", "explain with diagram",
+		"picture of", "diagram of", "with image", "with diagram"
+	]
+	return any(kw in q_lower for kw in keywords)
+
+
+def _try_generate_diagram(prompt: str) -> dict | None:
+	try:
+		try:
+			from backend.diagram_service import generate_meteorological_diagram
+		except ImportError:
+			from diagram_service import generate_meteorological_diagram
+		return generate_meteorological_diagram(prompt)
+	except Exception as err:
+		logger.warning("Auto diagram generation failed: %s", err)
+		return None
+
+
+def _generate_answer(
+	question: str,
+	context: str,
+	mode: str = "moderate",
+	chat_history: list[dict] | None = None,
+	is_image_query: bool = False,
+	user_profile: dict | None = None,
+) -> str:
 	api_key = os.getenv("GROQ_API_KEY") or GROQ_API_KEY
 	model_name = os.getenv("GROQ_MODEL") or GROQ_MODEL
 
@@ -276,6 +395,36 @@ def _generate_answer(question: str, context: str, mode: str = "moderate", chat_h
 		)
 
 	mode_instruction = MODE_PROMPTS.get(mode.lower(), MODE_PROMPTS["moderate"])
+
+	profile_prompt = ""
+	if user_profile:
+		name = user_profile.get("name") or ""
+		role = user_profile.get("role") or ""
+		org = user_profile.get("organization") or ""
+		cust_inst = (user_profile.get("custom_instructions") or "").strip()
+
+		parts = []
+		if name:
+			parts.append(f"User Name: {name}")
+		if role:
+			parts.append(f"Role / Specialization: {role}")
+		if org:
+			parts.append(f"Organization: {org}")
+		if cust_inst:
+			parts.append(f"User Custom Instructions & Preferences: {cust_inst}")
+
+		use_emojis = user_profile.get("use_emojis", True) if user_profile.get("use_emojis") is not None else True
+		if use_emojis:
+			parts.append("EMOJI POLICY: Enrich your response with relevant, professional meteorological emojis (e.g. 🌤️, 🌡️, 🌩️, 📊, 🌀, 🌧️, ⚡, 🔍, 💡, 📌) for section headers, bullet points, and key takeaways to make the response engaging.")
+		else:
+			parts.append("STRICT EMOJI POLICY: Do NOT use any emojis anywhere in your response. Keep the text completely plain, formal, and without emoji symbols.")
+
+		if parts:
+			profile_prompt = (
+				"\n\nUSER PERSONALIZATION & PREFERENCES:\n- "
+				+ "\n- ".join(parts)
+				+ "\n(IMPORTANT: Tailor your response tone, explanations, and emoji policy to align with this user's profile and custom instructions.)"
+			)
 
 	client = Groq(api_key=api_key)
 
@@ -294,10 +443,18 @@ def _generate_answer(question: str, context: str, mode: str = "moderate", chat_h
 	# Cap context text to 3500 characters max
 	capped_context = context[:3500] if context else ""
 
+	image_extra_prompt = ""
+	if is_image_query:
+		image_extra_prompt = (
+			"\n\nNOTE: A custom visual scientific diagram has been generated for this user request. "
+			"Include a dedicated section titled '**Visual Diagram & Component Breakdown**' explaining what the visual diagram illustrates, "
+			"breaking down key features, arrows, layers, and physical mechanisms depicted in the diagram."
+		)
+
 	user_prompt = (
-		f"{mode_instruction}\n\n"
+		f"{mode_instruction}{profile_prompt}\n\n"
 		f"Context from MTI training documents:\n\n{capped_context}\n\n"
-		f"Current User Request: {question.strip()}\n\n"
+		f"Current User Request: {question.strip()}{image_extra_prompt}\n\n"
 		"IMPORTANT: The user is engaged in an ongoing conversation thread. "
 		"Refer directly to the preceding conversation turns in the chat history above to fulfill follow-up requests, requests for questions, or clarification of previous topics. "
 		"Synthesize a clear, full, and self-contained meteorological answer adhering to the requested response depth. "
@@ -324,8 +481,8 @@ def _generate_answer(question: str, context: str, mode: str = "moderate", chat_h
 					retry_messages.append({"role": "assistant", "content": a[:800]})
 
 		retry_prompt = (
-			f"{mode_instruction}\n\n"
-			f"Current User Request: {question.strip()}\n\n"
+			f"{mode_instruction}{profile_prompt}\n\n"
+			f"Current User Request: {question.strip()}{image_extra_prompt}\n\n"
 			"IMPORTANT: Refer directly to the preceding conversation turns in the chat history above to construct the response. "
 			"Provide a clear, highly structured, and comprehensive meteorological explanation for this concept. "
 			"Organize your answer into distinct sections with bold titles (e.g. **1. Overview & Definition**, **2. Physical Principles & Formulation**, **3. Meteorological & NWP Applications**, **4. Key Takeaways**). "
@@ -339,8 +496,12 @@ def _generate_answer(question: str, context: str, mode: str = "moderate", chat_h
 	return cleaned or "No answer generated."
 
 
-
-def ask_question(question: str, mode: str = "moderate", chat_history: list[dict] | None = None) -> dict:
+def ask_question(
+	question: str,
+	mode: str = "moderate",
+	chat_history: list[dict] | None = None,
+	user_profile: dict | None = None,
+) -> dict:
 	question = question.strip()
 	if not question:
 		return {
@@ -360,21 +521,40 @@ def ask_question(question: str, mode: str = "moderate", chat_history: list[dict]
 			"sources": [],
 		}
 
+	is_image_req = _is_image_generation_requested(question)
+	generated_diag_img = None
+	if is_image_req:
+		generated_diag_img = _try_generate_diagram(question)
+
 	try:
-		context, sources = _retrieve_context(retrieval_query)
+		context, sources, images = _retrieve_context(retrieval_query)
 
 		if not context:
 			# Fallback to direct question search if combined query retrieved empty
-			context, sources = _retrieve_context(question)
+			context, sources, images = _retrieve_context(question)
+
+		if generated_diag_img:
+			images = [generated_diag_img] + (images or [])
 
 		if not context:
+			if generated_diag_img:
+				answer = f"Generated visual diagram for: '{question}'. (Note: Could not find additional grounded literature text in MTI files for this topic)."
+				return {"answer": answer, "sources": [], "images": images}
 			return {
 				"answer": "I could not find relevant information in the MTI training materials to answer this question.",
 				"sources": [],
+				"images": [],
 			}
 
-		answer = _generate_answer(question, context, mode=mode, chat_history=chat_history)
-		return {"answer": answer, "sources": sources}
+		answer = _generate_answer(
+			question,
+			context,
+			mode=mode,
+			chat_history=chat_history,
+			is_image_query=is_image_req,
+			user_profile=user_profile,
+		)
+		return {"answer": answer, "sources": sources, "images": images}
 	except FileNotFoundError as exc:
 		logger.error("%s", exc)
 		return {
@@ -387,3 +567,4 @@ def ask_question(question: str, mode: str = "moderate", chat_history: list[dict]
 			"answer": f"Unable to generate an answer right now: {exc}",
 			"sources": [],
 		}
+

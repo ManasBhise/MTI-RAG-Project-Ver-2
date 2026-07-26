@@ -18,6 +18,9 @@ DATA_DIR = Path(data_dir_env) if data_dir_env else PROJECT_ROOT / "data"
 vector_store_env = os.getenv("RAG_VECTOR_STORE_DIR")
 VECTOR_STORE_DIR = Path(vector_store_env) if vector_store_env else PROJECT_ROOT / "rag" / "store"
 
+EXTRACTED_IMAGES_DIR = PROJECT_ROOT / "data" / "extracted_images"
+GENERATED_DIAGRAMS_DIR = PROJECT_ROOT / "data" / "generated_diagrams"
+
 EMBEDDING_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "750"))
 CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "150"))

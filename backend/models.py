@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 try:
@@ -17,6 +17,11 @@ class User(Base):
 	email = Column(String(255), unique=True, nullable=False, index=True)
 	password_hash = Column(String(255), nullable=True)
 	google_id = Column(String(255), unique=True, nullable=True, index=True)
+	role = Column(String(120), nullable=True, default="Trainee Meteorologist")
+	organization = Column(String(150), nullable=True, default="India Meteorological Department (IMD)")
+	response_tone = Column(String(50), nullable=True, default="moderate")
+	custom_instructions = Column(Text, nullable=True, default="")
+	use_emojis = Column(Boolean, nullable=False, default=True)
 	created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 	chats = relationship("ChatHistory", back_populates="user", cascade="all, delete-orphan")

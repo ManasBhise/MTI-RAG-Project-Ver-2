@@ -95,6 +95,11 @@ export const askQuestion = async (question, mode = "moderate", threadId = null) 
 	return data;
 };
 
+export const generateDiagram = async (prompt) => {
+	const { data } = await api.post("/chat/generate-diagram", { prompt });
+	return data;
+};
+
 export const fetchThreads = async () => {
 	const { data } = await api.get("/threads");
 	return data;
@@ -127,6 +132,16 @@ export const deleteHistoryItem = async (historyId) => {
 
 export const deleteAllHistory = async () => {
 	const { data } = await api.delete("/history");
+	return data;
+};
+
+export const fetchUserProfile = async () => {
+	const { data } = await api.get("/user/profile");
+	return data;
+};
+
+export const updateUserProfile = async (payload) => {
+	const { data } = await api.put("/user/profile", payload);
 	return data;
 };
 

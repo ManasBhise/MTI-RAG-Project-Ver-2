@@ -9,11 +9,13 @@ from sqlalchemy.orm import Session
 try:
 	from .auth import get_current_user
 	from .database import get_db
+	from .diagram_service import generate_meteorological_diagram
 	from .models import ChatHistory, ChatThread, User
 	from .rag_service import generate_answer
 except ImportError:
 	from auth import get_current_user
 	from database import get_db
+	from diagram_service import generate_meteorological_diagram
 	from models import ChatHistory, ChatThread, User
 	from rag_service import generate_answer
 
@@ -27,12 +29,30 @@ class ChatRequest(BaseModel):
 	thread_id: str | None = Field(default=None)
 
 
+class ImageItem(BaseModel):
+	url: str
+	source: str | None = None
+	caption: str | None = None
+	provider: str | None = None
+
+
 class ChatResponse(BaseModel):
 	id: int
 	thread_id: str
 	answer: str
 	sources: list[str]
+	images: list[ImageItem] = []
 	timestamp: datetime
+
+
+class GenerateDiagramRequest(BaseModel):
+	prompt: str = Field(min_length=2, max_length=1000)
+
+
+class GenerateDiagramResponse(BaseModel):
+	url: str
+	caption: str
+	provider: str
 
 
 class ThreadItem(BaseModel):
@@ -166,9 +186,26 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db), current_user: User
 			for msg in thread.messages
 		]
 
-	result = generate_answer(question_text, mode=payload.mode, chat_history=history_turns)
+	user_profile = {
+		"name": current_user.name,
+		"role": getattr(current_user, "role", "Trainee Meteorologist") or "Trainee Meteorologist",
+		"organization": getattr(current_user, "organization", "IMD") or "",
+		"response_tone": getattr(current_user, "response_tone", "moderate") or "moderate",
+		"custom_instructions": getattr(current_user, "custom_instructions", "") or "",
+		"use_emojis": getattr(current_user, "use_emojis", True) if getattr(current_user, "use_emojis", True) is not None else True,
+	}
+
+	selected_mode = payload.mode if payload.mode and payload.mode != "moderate" else user_profile["response_tone"]
+
+	result = generate_answer(
+		question_text,
+		mode=selected_mode,
+		chat_history=history_turns,
+		user_profile=user_profile,
+	)
 	answer = str(result.get("answer", "")).strip()
 	sources = result.get("sources", []) or []
+	images = result.get("images", []) or []
 
 	chat_entry = ChatHistory(
 		user_id=current_user.id,
@@ -187,8 +224,25 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db), current_user: User
 		"thread_id": thread.id,
 		"answer": chat_entry.answer,
 		"sources": sources,
+		"images": images,
 		"timestamp": chat_entry.created_at,
 	}
+
+
+@router.post("/chat/generate-diagram", response_model=GenerateDiagramResponse)
+def generate_diagram(
+	payload: GenerateDiagramRequest,
+	current_user: User = Depends(get_current_user),
+):
+	"""Generate a high-quality scientific/meteorological diagram for a concept on demand."""
+	try:
+		diagram_info = generate_meteorological_diagram(payload.prompt)
+		return diagram_info
+	except Exception as exc:
+		raise HTTPException(
+			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+			detail=f"Diagram generation failed: {exc}",
+		)
 
 
 @router.get("/history", response_model=list[HistoryItem])

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Avatar, Box, Button, Chip, IconButton, MenuItem, Paper, Select, Stack, TextField, Tooltip, Typography } from "@mui/material";
+import { Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogContent, IconButton, MenuItem, Paper, Select, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import imdLogo from "../assets/imd_logo.jpg";
+import { exportMessageToPdf } from "../utils/exportPdf";
+import { generateDiagram } from "../services/api";
 
 function VerifiedBadgeIcon() {
   return (
@@ -43,6 +45,17 @@ function CopyIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+  );
+}
+
+function PdfIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+      <path d="M12 18v-6"></path>
+      <path d="m9 15 3 3 3-3"></path>
     </svg>
   );
 }
@@ -175,15 +188,66 @@ function FormattedMarkdown({ text, isUser = false }) {
   );
 }
 
-function Message({ role, text, references = [], timestamp, isLoading = false, onEdit, messageId }) {
+function PaletteIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+      <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+      <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+      <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.92 0 1.7-.71 1.7-1.63 0-.44-.18-.85-.46-1.16-.27-.3-.43-.72-.43-1.18 0-.92.75-1.67 1.67-1.67H16c3.31 0 6-2.69 6-6 0-4.96-4.49-9-10-9z"></path>
+    </svg>
+  );
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
+const getImageUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+  const cleanBase = API_BASE_URL.replace(/\/$/, "");
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  return `${cleanBase}${cleanPath}`;
+};
+
+function TrashIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      <line x1="10" y1="11" x2="10" y2="17"></line>
+      <line x1="14" y1="11" x2="14" y2="17"></line>
+    </svg>
+  );
+}
+
+function Message({ role, text, references = [], images = [], timestamp, isLoading = false, onEdit, onDelete, messageId, historyId, userQuestion = "" }) {
   const isUser = role === "user";
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text || "");
   const [editMode, setEditMode] = useState("moderate");
+  const [diagrams, setDiagrams] = useState([]);
+  const [diagramLoading, setDiagramLoading] = useState(false);
+  const [previewModalImg, setPreviewModalImg] = useState(null);
   const editInputRef = useRef(null);
   const displayText = isUser ? text : cleanTextDisplay(text);
+
+  const handleGenerateDiagram = async () => {
+    const promptQuery = userQuestion.trim() || displayText.slice(0, 150);
+    if (!promptQuery) return;
+
+    setDiagramLoading(true);
+    try {
+      const diagram = await generateDiagram(promptQuery);
+      setDiagrams((prev) => [...prev, diagram]);
+    } catch (err) {
+      console.error("Diagram generation failed:", err);
+    } finally {
+      setDiagramLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isEditing && editInputRef.current) {
@@ -265,6 +329,10 @@ function Message({ role, text, references = [], timestamp, isLoading = false, on
     window.speechSynthesis.speak(utterance);
   };
 
+  const handleDownloadPdf = () => {
+    exportMessageToPdf({ question: userQuestion, text, timestamp, references });
+  };
+
   return (
     <Box sx={{ display: "flex", gap: 1.25, justifyContent: isUser ? "flex-end" : "flex-start", my: 0.75, textAlign: "left" }}>
       {!isUser && (
@@ -335,20 +403,70 @@ function Message({ role, text, references = [], timestamp, isLoading = false, on
                 )}
 
                 {text && (
-                  <Tooltip title={copied ? "Copied!" : "Copy response"} placement="top">
-                    <IconButton
-                      size="small"
-                      onClick={handleCopy}
-                      sx={{
-                        opacity: 0.6,
-                        p: 0.25,
-                        color: "text.secondary",
-                        "&:hover": { opacity: 1, bgcolor: "#f1f5f9" },
-                      }}
-                    >
-                      <CopyIcon />
-                    </IconButton>
-                  </Tooltip>
+                  <>
+                    <Tooltip title={copied ? "Copied!" : "Copy response"} placement="top">
+                      <IconButton
+                        size="small"
+                        onClick={handleCopy}
+                        sx={{
+                          opacity: 0.6,
+                          p: 0.25,
+                          color: "text.secondary",
+                          "&:hover": { opacity: 1, bgcolor: "#f1f5f9" },
+                        }}
+                      >
+                        <CopyIcon />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title="Download as PDF" placement="top">
+                      <IconButton
+                        size="small"
+                        onClick={handleDownloadPdf}
+                        sx={{
+                          opacity: 0.6,
+                          p: 0.25,
+                          color: "text.secondary",
+                          "&:hover": { opacity: 1, bgcolor: "#f1f5f9" },
+                        }}
+                      >
+                        <PdfIcon />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title={diagramLoading ? "Generating diagram..." : "Generate AI Diagram"} placement="top">
+                      <IconButton
+                        size="small"
+                        onClick={handleGenerateDiagram}
+                        disabled={diagramLoading}
+                        sx={{
+                          opacity: 0.8,
+                          p: 0.25,
+                          color: "#2563eb",
+                          "&:hover": { opacity: 1, bgcolor: "rgba(37, 99, 235, 0.1)" },
+                        }}
+                      >
+                        {diagramLoading ? <CircularProgress size={14} color="primary" /> : <PaletteIcon />}
+                      </IconButton>
+                    </Tooltip>
+
+                    {onDelete && (
+                      <Tooltip title="Delete question & response" placement="top">
+                        <IconButton
+                          size="small"
+                          onClick={() => onDelete(historyId, messageId)}
+                          sx={{
+                            opacity: 0.6,
+                            p: 0.25,
+                            color: "text.secondary",
+                            "&:hover": { opacity: 1, color: "#ef4444", bgcolor: "#fef2f2" },
+                          }}
+                        >
+                          <TrashIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </>
                 )}
               </Box>
             )}
@@ -496,8 +614,102 @@ function Message({ role, text, references = [], timestamp, isLoading = false, on
                     <CopyIcon />
                   </IconButton>
                 </Tooltip>
+
+                {onDelete && (
+                  <Tooltip title="Delete question" placement="top">
+                    <IconButton
+                      size="small"
+                      onClick={() => onDelete(historyId, messageId)}
+                      sx={{
+                        opacity: 0.7,
+                        p: 0.25,
+                        color: "#ffffff",
+                        "&:hover": { opacity: 1, color: "#fca5a5" },
+                      }}
+                    >
+                      <TrashIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
               </Box>
             )}
+          </Box>
+        )}
+
+        {!isUser && images && images.length > 0 && (
+          <Box sx={{ mt: 1.5, pt: 1.25, borderTop: "1px solid", borderColor: "divider" }}>
+            <Typography variant="caption" sx={{ color: "#2563eb", fontWeight: 650, fontSize: "0.725rem", display: "block", mb: 0.75 }}>
+              📷 Source Document Figures:
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              {images.map((img, idx) => (
+                <Box
+                  key={idx}
+                  onClick={() => setPreviewModalImg({ url: getImageUrl(img.url), caption: img.caption || "Source Document Figure" })}
+                  sx={{
+                    width: 120,
+                    height: 85,
+                    borderRadius: "6px",
+                    overflow: "hidden",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    cursor: "pointer",
+                    position: "relative",
+                    bgcolor: "#f8fafc",
+                    "&:hover": { borderColor: "#2563eb", boxShadow: "0 2px 8px rgba(37,99,235,0.2)" },
+                  }}
+                >
+                  <Box component="img" src={getImageUrl(img.url)} alt="Source Figure" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {!isUser && diagrams && diagrams.length > 0 && (
+          <Box sx={{ mt: 1.5, pt: 1.25, borderTop: "1px solid", borderColor: "divider" }}>
+            <Typography variant="caption" sx={{ color: "#2563eb", fontWeight: 650, fontSize: "0.725rem", display: "block", mb: 0.75 }}>
+              🎨 Generated Visual Diagrams:
+            </Typography>
+            <Stack spacing={1.25}>
+              {diagrams.map((diag, idx) => (
+                <Paper
+                  key={idx}
+                  elevation={0}
+                  sx={{
+                    p: 1,
+                    borderRadius: "8px",
+                    border: "1px solid #bfdbfe",
+                    bgcolor: "#eff6ff",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 0.75,
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, fontSize: "0.725rem", color: "#1e40af" }}>
+                      {diag.caption || "AI Generated Meteorological Diagram"}
+                    </Typography>
+                    <Chip label={diag.provider || "AI Model"} size="small" sx={{ height: 18, fontSize: "0.625rem", bgcolor: "#dbeafe", color: "#1d4ed8" }} />
+                  </Box>
+                  <Box
+                    component="img"
+                    src={getImageUrl(diag.url)}
+                    alt="AI Diagram"
+                    onClick={() => setPreviewModalImg({ url: getImageUrl(diag.url), caption: diag.caption })}
+                    sx={{
+                      width: "100%",
+                      maxHeight: 260,
+                      objectFit: "contain",
+                      borderRadius: "6px",
+                      bgcolor: "#ffffff",
+                      border: "1px solid #cbd5e1",
+                      cursor: "pointer",
+                    }}
+                  />
+                </Paper>
+              ))}
+            </Stack>
           </Box>
         )}
 
@@ -559,6 +771,32 @@ function Message({ role, text, references = [], timestamp, isLoading = false, on
           <UserIcon />
         </Avatar>
       )}
+
+      <Dialog open={Boolean(previewModalImg)} onClose={() => setPreviewModalImg(null)} maxWidth="md" fullWidth>
+        <DialogContent sx={{ p: 2, bgcolor: "#0f172a", textAlign: "center" }}>
+          {previewModalImg && (
+            <Box>
+              <Typography variant="subtitle2" sx={{ color: "#ffffff", mb: 1.5, fontWeight: 600 }}>
+                {previewModalImg.caption}
+              </Typography>
+              <Box
+                component="img"
+                src={getImageUrl(previewModalImg.url)}
+                alt="Full Preview"
+                sx={{ maxWidth: "100%", maxHeight: "75vh", borderRadius: "8px", objectFit: "contain", bgcolor: "#ffffff", p: 0.5 }}
+              />
+              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 1.5 }}>
+                <Button size="small" variant="outlined" onClick={() => setPreviewModalImg(null)} sx={{ color: "#ffffff", borderColor: "rgba(255,255,255,0.4)" }}>
+                  Close
+                </Button>
+                <Button size="small" variant="contained" component="a" href={getImageUrl(previewModalImg.url)} target="_blank" download sx={{ textTransform: "none" }}>
+                  Download Image
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

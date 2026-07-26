@@ -7,10 +7,12 @@ import Message from "../Components/Message";
 import ChatInput from "../Components/ChatInput";
 import SettingsModal from "../Components/SettingsModal";
 import ThreadHistoryDrawer from "../Components/ThreadHistoryDrawer";
+import { exportFullConversationToPdf } from "../utils/exportPdf";
 import {
   askQuestion,
   clearSession,
   deleteAllHistory,
+  deleteHistoryItem,
   deleteThread,
   fetchThreadMessages,
   fetchThreads,
@@ -43,6 +45,14 @@ function Chat() {
   ]);
 
   const user = getStoredUser();
+
+  const handleDownloadConversation = () => {
+    if (!messages || messages.length === 0) return;
+    exportFullConversationToPdf({
+      threadTitle: activeThread?.title || "Active Conversation",
+      messages,
+    });
+  };
 
   const formatTime = (ts) => {
     if (!ts) return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -118,12 +128,14 @@ function Chat() {
       const mappedMessages = records.flatMap((record) => [
         {
           id: `q-${record.id}`,
+          historyId: record.id,
           role: "user",
           text: record.question || "",
           timestamp: formatTime(record.timestamp),
         },
         {
           id: `a-${record.id}`,
+          historyId: record.id,
           role: "assistant",
           text: record.answer || "",
           references: record.sources || [],
@@ -155,9 +167,11 @@ function Chat() {
 
       const assistantMessage = {
         id: response.id,
+        historyId: response.id,
         role: "assistant",
         text: response.answer,
         references: response.sources || [],
+        images: response.images || [],
         timestamp: new Date(response.timestamp).toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -168,7 +182,7 @@ function Chat() {
       setActiveThreadId(response.thread_id);
       await loadThreads();
     } catch (err) {
-      const message = err?.response?.data?.detail || "Unable to get response from assistant.";
+      const message = err?.response?.data?.detail || (err?.message ? `Unable to reach assistant backend (${err.message}). Ensure the backend server is running on http://localhost:8000.` : "Unable to get response from assistant.");
       setError(message);
     } finally {
       setLoading(false);
@@ -187,6 +201,29 @@ function Chat() {
       await loadThreads();
     } catch (err) {
       const message = err?.response?.data?.detail || "Failed to rename thread.";
+      setError(message);
+    }
+  };
+
+  const handleDeleteMessagePair = async (historyId, messageId) => {
+    try {
+      if (historyId) {
+        await deleteHistoryItem(historyId);
+      }
+      setMessages((prev) =>
+        prev.filter((m) => {
+          if (historyId && m.historyId === historyId) return false;
+          if (m.id === messageId) return false;
+          if (messageId && typeof messageId === "string") {
+            if (messageId.startsWith("q-") && m.id === `a-${messageId.replace("q-", "")}`) return false;
+            if (messageId.startsWith("a-") && m.id === `q-${messageId.replace("a-", "")}`) return false;
+          }
+          return true;
+        })
+      );
+      await loadThreads();
+    } catch (err) {
+      const message = err?.response?.data?.detail || "Failed to delete question.";
       setError(message);
     }
   };
@@ -275,6 +312,7 @@ function Chat() {
         role: "assistant",
         text: response.answer,
         references: response.sources || [],
+        images: response.images || [],
         timestamp: formatTime(response.timestamp),
       };
 
@@ -282,7 +320,7 @@ function Chat() {
       setActiveThreadId(response.thread_id);
       await loadThreads();
     } catch (err) {
-      const message = err?.response?.data?.detail || "Unable to get response from assistant.";
+      const message = err?.response?.data?.detail || (err?.message ? `Unable to reach assistant backend (${err.message}). Ensure the backend server is running on http://localhost:8000.` : "Unable to get response from assistant.");
       setError(message);
     } finally {
       setLoading(false);
@@ -319,6 +357,7 @@ function Chat() {
           onSelectChat={handleSelectThread}
           onDeleteChat={handleDeleteThread}
           onRenameThread={handleRenameThread}
+          onDownloadConversation={handleDownloadConversation}
           onOpenSettings={() => setSettingsOpen(true)}
           onToggleCollapse={() => setDesktopSidebarOpen(false)}
         />
@@ -336,6 +375,7 @@ function Chat() {
           onSelectChat={handleSelectThread}
           onDeleteChat={handleDeleteThread}
           onRenameThread={handleRenameThread}
+          onDownloadConversation={handleDownloadConversation}
           onOpenSettings={() => {
             setMobileSidebarOpen(false);
             setSettingsOpen(true);
@@ -356,6 +396,7 @@ function Chat() {
           userName={user?.name || "MTI User"}
           onLogout={handleLogout}
           onOpenHistory={() => setHistoryDrawerOpen(true)}
+          onDownloadConversation={handleDownloadConversation}
         />
 
         <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 2, sm: 3 } }}>
@@ -377,18 +418,34 @@ function Chat() {
               </Box>
             ) : (
               <Stack spacing={2}>
-                {messages.map((message) => (
-                  <div key={message.id} id={message.id}>
-                    <Message
-                      role={message.role}
-                      text={message.text}
-                      references={message.references}
-                      timestamp={message.timestamp}
-                      messageId={message.id}
-                      onEdit={message.role === "user" ? handleEditMessage : undefined}
-                    />
-                  </div>
-                ))}
+                {messages.map((message, index) => {
+                  let userQuestion = "";
+                  if (message.role === "assistant") {
+                    for (let i = index - 1; i >= 0; i--) {
+                      if (messages[i].role === "user") {
+                        userQuestion = messages[i].text;
+                        break;
+                      }
+                    }
+                  }
+
+                  return (
+                    <div key={message.id} id={message.id}>
+                      <Message
+                        role={message.role}
+                        text={message.text}
+                        references={message.references}
+                        images={message.images}
+                        timestamp={message.timestamp}
+                        messageId={message.id}
+                        historyId={message.historyId}
+                        userQuestion={userQuestion}
+                        onEdit={message.role === "user" ? handleEditMessage : undefined}
+                        onDelete={handleDeleteMessagePair}
+                      />
+                    </div>
+                  );
+                })}
 
                 {loading && (
                   <Message
@@ -402,7 +459,7 @@ function Chat() {
           </Box>
         </Box>
 
-        <Box sx={{ maxWidth: "960px", mx: "auto", width: "100%" }}>
+        <Box sx={{ maxWidth: "1350px", mx: "auto", width: "100%", px: { xs: 1, sm: 2 } }}>
           <ChatInput onSend={handleSend} disabled={loading} mode={responseMode} onModeChange={setResponseMode} />
         </Box>
       </Box>
@@ -418,6 +475,7 @@ function Chat() {
         onClose={() => setHistoryDrawerOpen(false)}
         messages={messages}
         threadTitle={activeThread?.title || "Active Conversation"}
+        onDeleteQuestion={handleDeleteMessagePair}
         onJumpToMessage={(msgId) => {
           const el = document.getElementById(msgId);
           if (el) {

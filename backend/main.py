@@ -37,7 +37,53 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
 	Base.metadata.create_all(bind=engine)
+	try:
+		with engine.begin() as conn:
+			from sqlalchemy import text
+			result = conn.execute(text("PRAGMA table_info(users)"))
+			cols = [row[1] for row in result.fetchall()]
+			if "google_id" not in cols:
+				conn.execute(text("ALTER TABLE users ADD COLUMN google_id VARCHAR(255)"))
+			if "role" not in cols:
+				conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(120)"))
+			if "organization" not in cols:
+				conn.execute(text("ALTER TABLE users ADD COLUMN organization VARCHAR(150)"))
+			if "response_tone" not in cols:
+				conn.execute(text("ALTER TABLE users ADD COLUMN response_tone VARCHAR(50)"))
+			if "custom_instructions" not in cols:
+				conn.execute(text("ALTER TABLE users ADD COLUMN custom_instructions TEXT"))
+			if "use_emojis" not in cols:
+				conn.execute(text("ALTER TABLE users ADD COLUMN use_emojis BOOLEAN DEFAULT 1"))
 
+			result_chat = conn.execute(text("PRAGMA table_info(chat_history)"))
+			chat_cols = [row[1] for row in result_chat.fetchall()]
+			if "thread_id" not in chat_cols:
+				conn.execute(text("ALTER TABLE chat_history ADD COLUMN thread_id VARCHAR(50)"))
+	except Exception as e:
+		print(f"Startup migration warning: {e}")
+
+	# Pre-warm vector store and embeddings model in background thread
+	import threading
+
+	def _warmup():
+		try:
+			from rag.pipeline import _load_vector_store
+			_load_vector_store()
+			print("Vector store & embeddings pre-warmed successfully.")
+		except Exception as e:
+			print(f"Vector store warmup warning: {e}")
+
+	threading.Thread(target=_warmup, daemon=True).start()
+
+
+from fastapi.staticfiles import StaticFiles
+from rag.config import EXTRACTED_IMAGES_DIR, GENERATED_DIAGRAMS_DIR
+
+EXTRACTED_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+GENERATED_DIAGRAMS_DIR.mkdir(parents=True, exist_ok=True)
+
+app.mount("/static/extracted_images", StaticFiles(directory=str(EXTRACTED_IMAGES_DIR)), name="extracted_images")
+app.mount("/static/generated_diagrams", StaticFiles(directory=str(GENERATED_DIAGRAMS_DIR)), name="generated_diagrams")
 
 app.include_router(auth_router)
 app.include_router(chat_router)

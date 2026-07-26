@@ -67,7 +67,18 @@ function CheckIcon() {
   );
 }
 
-function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Active Conversation", onJumpToMessage }) {
+function TrashIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      <line x1="10" y1="11" x2="10" y2="17"></line>
+      <line x1="14" y1="11" x2="14" y2="17"></line>
+    </svg>
+  );
+}
+
+function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Active Conversation", onJumpToMessage, onDeleteQuestion }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState(null);
 
@@ -131,9 +142,11 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
           </IconButton>
         </Box>
 
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.725rem", display: "block", mb: 1 }}>
-          {threadTitle} • <strong>{turns.length} question{turns.length === 1 ? "" : "s"}</strong> saved
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.25 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.725rem" }}>
+            {threadTitle} • <strong>{turns.length} question{turns.length === 1 ? "" : "s"}</strong> saved
+          </Typography>
+        </Box>
 
         {/* Filter Input */}
         <Paper
@@ -232,7 +245,7 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
                     </Button>
                   </Tooltip>
 
-                  <Tooltip title="View answer in chat" placement="top">
+                  <Tooltip title="Jump to chat" placement="top">
                     <Button
                       size="small"
                       variant="outlined"
@@ -261,6 +274,27 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
                       Jump to chat
                     </Button>
                   </Tooltip>
+
+                  {onDeleteQuestion && (
+                    <Tooltip title="Delete question & answer" placement="top">
+                      <Button
+                        size="small"
+                        onClick={() => onDeleteQuestion(turn.userMessage?.historyId, turn.userMessage?.id)}
+                        startIcon={<TrashIcon />}
+                        sx={{
+                          fontSize: "0.7rem",
+                          py: 0.3,
+                          px: 1,
+                          textTransform: "none",
+                          color: "#ef4444",
+                          fontWeight: 600,
+                          "&:hover": { bgcolor: "rgba(239, 68, 68, 0.08)" },
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </Tooltip>
+                  )}
                 </Box>
               </Paper>
             ))}
