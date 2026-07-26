@@ -20,7 +20,7 @@ import {
 import { loginUser, googleLogin, saveSession } from "../services/api";
 import imdLogo from "../assets/imd_logo.jpg";
 
-const GOOGLE_CLIENT_ID = "498760101315-6nf42snn76dsehqhrinqccm4hj22ldnc.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "498760101315-6nf42snn76dsehqhrinqccm4hj22ldnc.apps.googleusercontent.com";
 
 function EyeIcon() {
   return (
