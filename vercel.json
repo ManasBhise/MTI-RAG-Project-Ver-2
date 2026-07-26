@@ -1,0 +1,4 @@
+{
+  "buildCommand": "cd \"frontend/MTI_RAG_Project_Version 2\" && npm install && npm run build",
+  "outputDirectory": "frontend/MTI_RAG_Project_Version 2/dist"
+}
