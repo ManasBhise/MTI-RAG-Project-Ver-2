@@ -279,7 +279,38 @@ function Chat() {
       return true;
     }
 
-    // 8. Logout Commands
+    // 8. Voice Command Help
+    const helpKeywords = ["voice help", "show commands", "help menu", "voice commands", "show voice commands", "what can i say"];
+    if (helpKeywords.some((kw) => clean.includes(kw))) {
+      setVoiceControlOpen(true);
+      setVoiceActionToast("🎙️ Voice Command Executed: Opened Voice Command Center.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 9. AI Diagram Generation
+    const diagramKeywords = ["generate diagram", "create diagram", "draw diagram", "show diagram", "make diagram", "ai diagram"];
+    if (diagramKeywords.some((kw) => clean.includes(kw))) {
+      setVoiceActionToast("🎙️ Voice Command Executed: Generating AI Meteorological Diagram...");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      handleSend("Generate a detailed AI meteorological diagram illustrating atmospheric circulation and cloud formation physics.");
+      return true;
+    }
+
+    // 10. Delete Last Message Pair
+    const deleteMsgKeywords = ["delete last message", "remove last question", "delete question", "remove question", "delete message"];
+    if (deleteMsgKeywords.some((kw) => clean.includes(kw))) {
+      const assistantMsgs = messages.filter((m) => m.role === "assistant" && m.historyId);
+      if (assistantMsgs.length > 0) {
+        const lastMsg = assistantMsgs[assistantMsgs.length - 1];
+        handleDeleteMessagePair(lastMsg.historyId);
+        setVoiceActionToast("🎙️ Voice Command Executed: Deleted latest message pair.");
+        setTimeout(() => setVoiceActionToast(""), 4000);
+        return true;
+      }
+    }
+
+    // 11. Logout Commands
     const logoutKeywords = ["log out", "logout", "sign out", "exit account"];
     if (logoutKeywords.some((kw) => clean.includes(kw))) {
       setVoiceActionToast("🎙️ Voice Command Executed: Logging out...");

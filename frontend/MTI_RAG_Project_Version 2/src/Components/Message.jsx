@@ -387,7 +387,7 @@ function FormattedMarkdown({ text, isUser = false }) {
           my: 0.4,
         }}
       >
-        {renderInlineFormatting(line, isUser)}
+        {renderInlineFormatting(rawLine, isUser)}
       </Typography>
     );
   }

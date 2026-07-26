@@ -62,12 +62,12 @@ function SettingsIcon() {
   );
 }
 
-function SidebarCollapseIcon() {
+function SidebarCollapseIcon({ size = 19 }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-      <line x1="9" y1="3" x2="9" y2="21"></line>
-      <path d="M15 10l-2 2 2 2"></path>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="5" strokeWidth="1.8" />
+      <line x1="9" y1="3" x2="9" y2="21" strokeWidth="1.8" />
+      <path d="M15 9l-3 3 3 3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -165,10 +165,16 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
                 color: "text.secondary",
                 border: "1px solid",
                 borderColor: "divider",
-                borderRadius: "8px",
-                p: 0.8,
+                borderRadius: "9px",
+                p: 0.75,
                 flexShrink: 0,
-                "&:hover": { bgcolor: "action.hover", color: "text.primary" },
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  bgcolor: "rgba(37, 99, 235, 0.08)",
+                  color: "#2563eb",
+                  borderColor: "rgba(37, 99, 235, 0.3)",
+                  transform: "scale(1.05)",
+                },
               }}
             >
               <SidebarCollapseIcon />

@@ -1,12 +1,12 @@
 import { AppBar, Avatar, Box, Button, Chip, IconButton, Toolbar, Tooltip, Typography } from "@mui/material";
 import imdLogo from "../assets/imd_logo.jpg";
 
-function MenuIcon() {
+function MenuIcon({ size = 19, isSidebarOpen = false }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="3" y1="12" x2="21" y2="12"></line>
-      <line x1="3" y1="6" x2="21" y2="6"></line>
-      <line x1="3" y1="18" x2="21" y2="18"></line>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="5" strokeWidth="1.8" />
+      <line x1="9" y1="3" x2="9" y2="21" strokeWidth="1.8" />
+      <path d={isSidebarOpen ? "M15 9l-3 3 3 3" : "M12 9l3 3-3 3"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -107,11 +107,21 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
             sx={{
               display: { xs: "inline-flex", md: isSidebarOpen ? "none" : "inline-flex" },
               color: "text.secondary",
-              "&:hover": { bgcolor: "action.hover", color: "text.primary" },
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: "9px",
+              p: 0.75,
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                bgcolor: "rgba(37, 99, 235, 0.08)",
+                color: "#2563eb",
+                borderColor: "rgba(37, 99, 235, 0.3)",
+                transform: "scale(1.05)",
+              },
             }}
             aria-label="toggle sidebar"
           >
-            <MenuIcon />
+            <MenuIcon isSidebarOpen={isSidebarOpen} />
           </IconButton>
         </Tooltip>
 

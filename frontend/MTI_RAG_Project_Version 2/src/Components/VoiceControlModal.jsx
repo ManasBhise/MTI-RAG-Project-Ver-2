@@ -51,6 +51,14 @@ const COMMAND_GROUPS = [
     commands: [
       { trigger: '"New conversation" / "Start new chat"', desc: "Initializes a fresh chat thread" },
       { trigger: '"Download conversation" / "Export PDF"', desc: "Downloads conversation as PDF" },
+      { trigger: '"Delete last message" / "Remove question"', desc: "Deletes the latest question & answer pair" },
+    ],
+  },
+  {
+    category: "🎨 AI Diagram & Visuals",
+    commands: [
+      { trigger: '"Generate diagram" / "Draw diagram"', desc: "Auto-generates an AI meteorological chart" },
+      { trigger: '"Toggle emojis" / "Enable emojis"', desc: "Toggles AI response emoji preference" },
     ],
   },
   {
@@ -58,6 +66,7 @@ const COMMAND_GROUPS = [
     commands: [
       { trigger: '"Open settings" / "Show preferences"', desc: "Opens Personalization & Settings modal" },
       { trigger: '"Open history" / "Show history"', desc: "Opens Thread History drawer" },
+      { trigger: '"Voice help" / "Show commands"', desc: "Opens this Voice Command Center" },
     ],
   },
   {
