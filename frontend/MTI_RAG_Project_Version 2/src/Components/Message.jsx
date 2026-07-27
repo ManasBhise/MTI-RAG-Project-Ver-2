@@ -2,7 +2,20 @@ import { useState, useEffect, useRef } from "react";
 import { Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogContent, IconButton, MenuItem, Paper, Select, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import imdLogo from "../assets/imd_logo.jpg";
 import { exportMessageToPdf } from "../utils/exportPdf";
-import { generateDiagram } from "../services/api";
+import { generateDiagram, translateMessage } from "../services/api";
+
+function TranslateIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m5 8 6 6"></path>
+      <path d="m4 14 6-6 2-3"></path>
+      <path d="M2 5h12"></path>
+      <path d="M7 2v3"></path>
+      <path d="M22 22l-5-10-5 10"></path>
+      <path d="M14 18h6"></path>
+    </svg>
+  );
+}
 
 function VerifiedBadgeIcon() {
   return (
@@ -442,8 +455,11 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
   const [diagrams, setDiagrams] = useState([]);
   const [diagramLoading, setDiagramLoading] = useState(false);
   const [previewModalImg, setPreviewModalImg] = useState(null);
+  const [translatedHindiText, setTranslatedHindiText] = useState("");
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [showHindi, setShowHindi] = useState(false);
   const editInputRef = useRef(null);
-  const displayText = isUser ? text : cleanTextDisplay(text);
+  const displayText = isUser ? text : cleanTextDisplay(showHindi && translatedHindiText ? translatedHindiText : text);
 
   const handleGenerateDiagram = async () => {
     const promptQuery = userQuestion.trim() || displayText.slice(0, 150);
@@ -457,6 +473,31 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
       console.error("Diagram generation failed:", err);
     } finally {
       setDiagramLoading(false);
+    }
+  };
+
+  const handleToggleHindiTranslation = async () => {
+    if (showHindi) {
+      setShowHindi(false);
+      return;
+    }
+
+    if (translatedHindiText) {
+      setShowHindi(true);
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const res = await translateMessage(text, "hindi");
+      if (res && res.translated_text) {
+        setTranslatedHindiText(res.translated_text);
+        setShowHindi(true);
+      }
+    } catch (err) {
+      console.error("Translation failed:", err);
+    } finally {
+      setIsTranslating(false);
     }
   };
 
@@ -519,18 +560,26 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
     utterance.pitch = 1.0;
 
     const voices = window.speechSynthesis.getVoices();
-    const englishVoice =
-      voices.find(
-        (v) =>
-          (v.name.includes("Natural") ||
-            v.name.includes("Google") ||
-            v.name.includes("Samantha") ||
-            v.name.includes("Microsoft")) &&
-          v.lang.startsWith("en")
-      ) || voices.find((v) => v.lang.startsWith("en"));
+    let selectedVoice = null;
 
-    if (englishVoice) {
-      utterance.voice = englishVoice;
+    if (showHindi) {
+      selectedVoice = voices.find((v) => v.lang.startsWith("hi") || v.name.includes("Hindi"));
+    }
+
+    if (!selectedVoice) {
+      selectedVoice =
+        voices.find(
+          (v) =>
+            (v.name.includes("Natural") ||
+              v.name.includes("Google") ||
+              v.name.includes("Samantha") ||
+              v.name.includes("Microsoft")) &&
+            v.lang.startsWith("en")
+        ) || voices.find((v) => v.lang.startsWith("en"));
+    }
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
     }
 
     utterance.onend = () => setIsSpeaking(false);
@@ -595,6 +644,30 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
 
             {!isLoading && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Tooltip title={isTranslating ? "Translating to Hindi..." : showHindi ? "Switch to English" : "Translate response to Hindi (हिंदी)"} placement="top">
+                  <Button
+                    size="small"
+                    onClick={handleToggleHindiTranslation}
+                    disabled={isTranslating}
+                    startIcon={isTranslating ? <CircularProgress size={12} color="inherit" /> : <TranslateIcon />}
+                    sx={{
+                      py: 0.1,
+                      px: 0.75,
+                      fontSize: "0.6875rem",
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderRadius: "4px",
+                      color: showHindi ? "#047857" : "#2563eb",
+                      bgcolor: showHindi ? "rgba(16, 185, 129, 0.1)" : "rgba(37, 99, 235, 0.08)",
+                      "&:hover": {
+                        bgcolor: showHindi ? "rgba(16, 185, 129, 0.18)" : "rgba(37, 99, 235, 0.15)",
+                      },
+                    }}
+                  >
+                    {isTranslating ? "Translating..." : showHindi ? "English" : "हिंदी (Hindi)"}
+                  </Button>
+                </Tooltip>
+
                 {("speechSynthesis" in window) && text && (
                   <Tooltip title={isSpeaking ? "Stop reading" : "Read response aloud"} placement="top">
                     <IconButton

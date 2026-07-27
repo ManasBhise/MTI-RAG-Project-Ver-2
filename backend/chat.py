@@ -55,6 +55,16 @@ class GenerateDiagramResponse(BaseModel):
 	provider: str
 
 
+class TranslateRequest(BaseModel):
+	text: str = Field(min_length=1, max_length=10000)
+	target_language: str = Field(default="hindi", max_length=50)
+
+
+class TranslateResponse(BaseModel):
+	translated_text: str
+	language: str
+
+
 class ThreadItem(BaseModel):
 	id: str
 	title: str
@@ -242,6 +252,61 @@ def generate_diagram(
 		raise HTTPException(
 			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
 			detail=f"Diagram generation failed: {exc}",
+		)
+
+
+@router.post("/chat/translate", response_model=TranslateResponse)
+def translate_response(
+	payload: TranslateRequest,
+	current_user: User = Depends(get_current_user),
+):
+	"""Translate assistant response to Hindi (or target language) using LLM while preserving markdown layout."""
+	text_to_translate = payload.text.strip()
+	target_lang = payload.target_language.strip().lower()
+
+	if not text_to_translate:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Text to translate cannot be empty")
+
+	groq_key = os.getenv("GROQ_API_KEY", "").strip()
+
+	try:
+		from groq import Groq
+		client = Groq(api_key=groq_key)
+		groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+		lang_name = "Hindi (हिंदी - Devanagari script)" if target_lang in ("hindi", "hi") else target_lang.capitalize()
+
+		system_prompt = (
+			f"You are a highly skilled meteorological translator for the Meteorological Training Institute (India Meteorological Department).\n"
+			f"Translate the provided meteorological text into clean, professional, and elegant {lang_name}.\n\n"
+			f"STRICT FORMATTING & TRANSLATION RULES:\n"
+			f"1. Preserve ALL markdown layout structures exactly (headers like ### 1. Overview, bold text, bullet points, numbers, formulas, equation symbols).\n"
+			f"2. Use accurate, standardized IMD meteorological Hindi terminology.\n"
+			f"3. Include key English meteorological terms in parentheses alongside Hindi where helpful (e.g. तापीय संवहन (Thermal Advection), वायुमंडलीय दाब (Atmospheric Pressure)).\n"
+			f"4. Do NOT output any intro text, conversational filler, or commentary. Output ONLY the translated markdown text."
+		)
+
+		messages = [
+			{"role": "system", "content": system_prompt},
+			{"role": "user", "content": text_to_translate},
+		]
+
+		completion = client.chat.completions.create(
+			model=groq_model,
+			messages=messages,
+			temperature=0.1,
+			max_tokens=2000,
+		)
+
+		translated_text = completion.choices[0].message.content.strip()
+		return {
+			"translated_text": translated_text or text_to_translate,
+			"language": target_lang,
+		}
+	except Exception as exc:
+		raise HTTPException(
+			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+			detail=f"Translation service failed: {exc}",
 		)
 
 

@@ -145,4 +145,12 @@ export const updateUserProfile = async (payload) => {
 	return data;
 };
 
+export const translateMessage = async (text, targetLanguage = "hindi") => {
+	const { data } = await api.post("/chat/translate", {
+		text,
+		target_language: targetLanguage,
+	});
+	return data;
+};
+
 export default api;
