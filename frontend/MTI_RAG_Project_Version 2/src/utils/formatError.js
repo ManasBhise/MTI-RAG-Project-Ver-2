@@ -28,3 +28,32 @@ export function formatErrorMessage(detail, fallback = "An unexpected error occur
 
   return String(detail);
 }
+
+/**
+ * Robust client-side fallback translation to Hindi (Devanagari script)
+ */
+export async function translateToHindiClient(text) {
+  if (!text) return "";
+  try {
+    const paragraphs = text.split("\n\n");
+    const translatedParagraphs = await Promise.all(
+      paragraphs.map(async (paragraph) => {
+        if (!paragraph.trim()) return "";
+        if (paragraph.startsWith("```")) return paragraph;
+
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=hi&dt=t&q=${encodeURIComponent(paragraph)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data && data[0]) {
+          return data[0].map((chunk) => chunk[0]).filter(Boolean).join("");
+        }
+        return paragraph;
+      })
+    );
+    return translatedParagraphs.join("\n\n");
+  } catch (err) {
+    console.error("Client Hindi translation error:", err);
+    return null;
+  }
+}

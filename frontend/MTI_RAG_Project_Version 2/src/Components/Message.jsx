@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogContent, IconButton, MenuItem, Paper, Select, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import imdLogo from "../assets/imd_logo.jpg";
 import { exportMessageToPdf } from "../utils/exportPdf";
+import { translateToHindiClient } from "../utils/formatError";
 import { generateDiagram, translateMessage } from "../services/api";
 
 function TranslateIcon() {
@@ -489,10 +490,28 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
 
     setIsTranslating(true);
     try {
-      const res = await translateMessage(text, "hindi");
-      if (res && res.translated_text) {
-        setTranslatedHindiText(res.translated_text);
+      let hindi = null;
+
+      // 1. Try Groq LLM backend translation
+      try {
+        const res = await translateMessage(text, "hindi");
+        if (res && res.translated_text && /[\u0900-\u097F]/.test(res.translated_text)) {
+          hindi = res.translated_text;
+        }
+      } catch (e) {
+        console.warn("Backend translation fallback triggered:", e);
+      }
+
+      // 2. Fallback to client-side Google Translate API if Groq key is unconfigured
+      if (!hindi) {
+        hindi = await translateToHindiClient(text);
+      }
+
+      if (hindi) {
+        setTranslatedHindiText(hindi);
         setShowHindi(true);
+      } else {
+        alert("Unable to translate text to Hindi right now.");
       }
     } catch (err) {
       console.error("Translation failed:", err);
