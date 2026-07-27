@@ -90,6 +90,25 @@ function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const handleGuestLogin = () => {
+    const guestSession = {
+      access_token: "guest_session_token",
+      token_type: "bearer",
+      user: {
+        id: 0,
+        name: "Guest Meteorologist",
+        email: "guest@mti.gov.in",
+        role: "Trainee Meteorologist",
+        organization: "India Meteorological Department (IMD)",
+        response_tone: "moderate",
+        custom_instructions: "",
+        use_emojis: true,
+      },
+    };
+    saveSession(guestSession, true);
+    navigate("/chat", { replace: true });
+  };
+
   const handleGoogleCallback = useCallback(
     async (response) => {
       setError("");
@@ -368,6 +387,29 @@ function Login() {
             }}
           >
             {googleLoading ? "Signing in..." : "Sign in with Google"}
+          </Button>
+
+          {/* Continue as Guest Button */}
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={handleGuestLogin}
+            sx={{
+              py: 1.1,
+              mt: 1.25,
+              fontSize: "0.8375rem",
+              fontWeight: 600,
+              textTransform: "none",
+              color: "#ffffff",
+              bgcolor: "#0f172a",
+              borderRadius: "8px",
+              boxShadow: "0 2px 6px rgba(15, 23, 42, 0.15)",
+              "&:hover": {
+                bgcolor: "#1e293b",
+              },
+            }}
+          >
+            ⚡ Continue as Guest (Instant Access)
           </Button>
 
           <Box mt={3} pt={2} sx={{ borderTop: "1px solid #f1f5f9", textAlign: "left" }}>
