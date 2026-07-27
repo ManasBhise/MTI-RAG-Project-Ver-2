@@ -1,8 +1,17 @@
-# React
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+mti_assistant.db
+mti_rag.db
+
+# React & Node
+node_modules/
 frontend/node_modules/
 frontend/dist/
 
 # Python
+.venv/
 backend/venv/
 __pycache__/
 *.pyc
@@ -11,11 +20,9 @@ __pycache__/
 .env
 backend/.env
 
-# Streamlit
+# Streamlit & IDE
 .streamlit/secrets.toml
-
-# OS files
+.vercel/
 .DS_Store
 Thumbs.db
-node_modules
-.vercel
+
