@@ -96,10 +96,27 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 		headers={"WWW-Authenticate": "Bearer"},
 	)
 
-	if token and (token.startswith("guest") or token == "guest"):
-		guest_user = db.query(User).filter(User.email == "guest@mti.gov.in").first()
-		if not guest_user:
-			guest_user = User(
+	if token and ("guest" in str(token).lower()):
+		try:
+			guest_user = db.query(User).filter(User.email == "guest@mti.gov.in").first()
+			if not guest_user:
+				guest_user = User(
+					name="Guest Meteorologist",
+					email="guest@mti.gov.in",
+					role="Trainee Meteorologist",
+					organization="India Meteorological Department (IMD)",
+					response_tone="moderate",
+					custom_instructions="",
+					use_emojis=True,
+				)
+				db.add(guest_user)
+				db.commit()
+				db.refresh(guest_user)
+			return guest_user
+		except Exception:
+			db.rollback()
+			return User(
+				id=0,
 				name="Guest Meteorologist",
 				email="guest@mti.gov.in",
 				role="Trainee Meteorologist",
@@ -108,10 +125,6 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 				custom_instructions="",
 				use_emojis=True,
 			)
-			db.add(guest_user)
-			db.commit()
-			db.refresh(guest_user)
-		return guest_user
 
 	try:
 		payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

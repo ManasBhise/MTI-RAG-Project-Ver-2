@@ -103,14 +103,7 @@ function Login() {
       use_emojis: true,
     };
 
-    // Store ONLY in sessionStorage for strict browser-tab session isolation
-    sessionStorage.setItem("mti_access_token", guestToken);
-    sessionStorage.setItem("mti_user", JSON.stringify(guestUser));
-    
-    // Clear persistent localStorage so sharing link to another device forces authentication
-    localStorage.removeItem("mti_access_token");
-    localStorage.removeItem("mti_user");
-
+    saveSession({ access_token: guestToken, user: guestUser });
     navigate("/chat", { replace: true });
   };
 
