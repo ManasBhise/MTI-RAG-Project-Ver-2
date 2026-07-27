@@ -392,7 +392,7 @@ function Login() {
           {/* Continue as Guest Button */}
           <Button
             fullWidth
-            variant="contained"
+            variant="outlined"
             onClick={handleGuestLogin}
             sx={{
               py: 1.1,
@@ -400,12 +400,15 @@ function Login() {
               fontSize: "0.8375rem",
               fontWeight: 600,
               textTransform: "none",
-              color: "#ffffff",
-              bgcolor: "#0f172a",
+              color: "#2563eb",
+              borderColor: "#bfdbfe",
               borderRadius: "8px",
-              boxShadow: "0 2px 6px rgba(15, 23, 42, 0.15)",
+              bgcolor: "#eff6ff",
+              boxShadow: "0 1px 2px rgba(37, 99, 235, 0.05)",
               "&:hover": {
-                bgcolor: "#1e293b",
+                bgcolor: "#dbeafe",
+                borderColor: "#93c5fd",
+                boxShadow: "0 2px 5px rgba(37, 99, 235, 0.12)",
               },
             }}
           >
