@@ -35,6 +35,47 @@ def _normalize_result(result: Any) -> dict:
 	}
 
 
+def _fallback_llm_answer(question: str, user_profile: dict | None = None) -> dict | None:
+	"""Fallback LLM answer generator when full local vector store pipeline is unavailable."""
+	groq_key = os.getenv("GROQ_API_KEY", "")
+	if not groq_key:
+		return None
+
+	try:
+		from groq import Groq
+		client = Groq(api_key=groq_key)
+		groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+		system_prompt = (
+			"You are the official MTI Knowledge Assistant for the Meteorological Training Institute (India Meteorological Department).\n"
+			"Your scope is strictly focused on meteorology, atmospheric science, weather forecasting, numerical weather prediction (NWP), and MTI training literature.\n"
+			"Provide a clear, highly structured, and comprehensive meteorological response adhering to official IMD standards.\n"
+			"Organize your answer into distinct sections with bold headers (e.g. ### 1. Overview & Definition, ### 2. Physical & Meteorological Principles, ### 3. NWP & Operational Applications, ### 4. Key Takeaways)."
+		)
+
+		messages = [
+			{"role": "system", "content": system_prompt},
+			{"role": "user", "content": question.strip()},
+		]
+
+		completion = client.chat.completions.create(
+			model=groq_model,
+			messages=messages,
+			temperature=0.2,
+			max_tokens=1500,
+		)
+		answer_text = completion.choices[0].message.content.strip()
+
+		return {
+			"answer": answer_text,
+			"sources": ["MTI Meteorological Assistant (Cloud Synthesis Mode)"],
+			"images": [],
+		}
+	except Exception as exc:
+		logger.exception("Fallback LLM answer generation failed: %s", exc)
+		return None
+
+
 def generate_answer(
 	question: str,
 	mode: str = "moderate",
@@ -62,8 +103,14 @@ def generate_answer(
 		except Exception as exc:
 			logger.exception("RAG pipeline call failed: %s", exc)
 
+	# Try fallback LLM generation if RAG pipeline call failed
+	fallback_res = _fallback_llm_answer(question, user_profile=user_profile)
+	if fallback_res:
+		return fallback_res
+
 	return {
-		"answer": "I can help with MTI training questions. Configure the RAG pipeline module to get grounded document answers.",
-		"sources": ["RAG pipeline not configured"],
+		"answer": "I can help with MTI training questions. Please ensure GROQ_API_KEY or RAG pipeline dependencies are properly configured in your deployment settings.",
+		"sources": ["RAG pipeline / LLM service not configured"],
 		"images": [],
 	}
+
