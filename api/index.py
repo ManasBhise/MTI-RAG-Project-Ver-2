@@ -8,6 +8,7 @@ if str(ROOT_DIR) not in sys.path:
 
 import os
 
+os.environ["VERCEL"] = "1"
 os.environ.setdefault("GROQ_MODEL", "llama-3.3-70b-versatile")
 os.environ.setdefault("RAG_PIPELINE_MODULE", "rag.pipeline")
 os.environ.setdefault("RAG_PIPELINE_FUNCTION", "ask_question")

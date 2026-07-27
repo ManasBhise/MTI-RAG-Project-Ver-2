@@ -63,18 +63,19 @@ def on_startup():
 	except Exception as e:
 		print(f"Startup migration warning: {e}")
 
-	# Pre-warm vector store and embeddings model in background thread
-	import threading
+	# Pre-warm vector store and embeddings model in local mode (skip on Vercel serverless for instant response speed)
+	if not os.getenv("VERCEL"):
+		import threading
 
-	def _warmup():
-		try:
-			from rag.pipeline import _load_vector_store
-			_load_vector_store()
-			print("Vector store & embeddings pre-warmed successfully.")
-		except Exception as e:
-			print(f"Vector store warmup warning: {e}")
+		def _warmup():
+			try:
+				from rag.pipeline import _load_vector_store
+				_load_vector_store()
+				print("Vector store & embeddings pre-warmed successfully.")
+			except Exception as e:
+				print(f"Vector store warmup warning: {e}")
 
-	threading.Thread(target=_warmup, daemon=True).start()
+		threading.Thread(target=_warmup, daemon=True).start()
 
 
 from fastapi.staticfiles import StaticFiles
