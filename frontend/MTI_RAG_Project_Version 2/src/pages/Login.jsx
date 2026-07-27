@@ -18,6 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 import { loginUser, googleLogin, saveSession } from "../services/api";
+import { formatErrorMessage } from "../utils/formatError";
 import imdLogo from "../assets/imd_logo.jpg";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "498760101315-6nf42snn76dsehqhrinqccm4hj22ldnc.apps.googleusercontent.com";
@@ -99,8 +100,10 @@ function Login() {
         saveSession(data, rememberMe);
         navigate("/chat", { replace: true });
       } catch (err) {
-        const message =
-          err?.response?.data?.detail || "Google sign-in failed. Please try again.";
+        const message = formatErrorMessage(
+          err?.response?.data?.detail,
+          "Google sign-in failed. Please try again."
+        );
         setError(message);
       } finally {
         setGoogleLoading(false);
@@ -157,7 +160,7 @@ function Login() {
       saveSession(response, rememberMe);
       navigate("/chat", { replace: true });
     } catch (err) {
-      const message = err?.response?.data?.detail || "Login failed. Please verify your credentials.";
+      const message = formatErrorMessage(err?.response?.data?.detail, "Login failed. Please verify your credentials.");
       setError(message);
     } finally {
       setLoading(false);

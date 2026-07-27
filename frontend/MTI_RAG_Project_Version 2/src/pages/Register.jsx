@@ -14,6 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 import { registerUser } from "../services/api";
+import { formatErrorMessage } from "../utils/formatError";
 import imdLogo from "../assets/imd_logo.jpg";
 
 function EyeIcon() {
@@ -83,7 +84,7 @@ function Register() {
       setSuccess("Registration successful. Redirecting to login...");
       setTimeout(() => navigate("/", { replace: true }), 800);
     } catch (err) {
-      const message = err?.response?.data?.detail || "Registration failed. Please try again.";
+      const message = formatErrorMessage(err?.response?.data?.detail, "Registration failed. Please try again.");
       setError(message);
     } finally {
       setLoading(false);

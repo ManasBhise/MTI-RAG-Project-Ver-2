@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { useThemeMode } from "../App";
 import { fetchUserProfile, getStoredUser, saveSession, updateUserProfile } from "../services/api";
+import { formatErrorMessage } from "../utils/formatError";
 
 function SettingsIcon() {
   return (
@@ -159,7 +160,7 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
       saveSession({ user: updatedUser });
       setSuccessMessage("Personalization preferences saved successfully!");
     } catch (err) {
-      setErrorMessage(err?.response?.data?.detail || "Failed to save personalization settings.");
+      setErrorMessage(formatErrorMessage(err?.response?.data?.detail, "Failed to save personalization settings."));
     } finally {
       setSavingProfile(false);
     }

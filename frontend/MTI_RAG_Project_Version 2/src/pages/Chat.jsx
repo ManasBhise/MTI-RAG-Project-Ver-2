@@ -22,6 +22,7 @@ import {
   logoutUser,
   renameThread,
 } from "../services/api";
+import { formatErrorMessage } from "../utils/formatError";
 
 function Chat() {
   const navigate = useNavigate();
@@ -105,7 +106,7 @@ function Chat() {
       setThreads([]);
       return [];
     } catch (err) {
-      const message = err?.response?.data?.detail || "Unable to load conversation threads.";
+      const message = formatErrorMessage(err?.response?.data?.detail, "Unable to load conversation threads.");
       setError(message);
       setThreads([]);
       return [];
@@ -149,7 +150,7 @@ function Chat() {
       ]);
       setMessages(mappedMessages);
     } catch (err) {
-      const message = err?.response?.data?.detail || "Failed to load thread messages.";
+      const message = formatErrorMessage(err?.response?.data?.detail, "Failed to load thread messages.");
       setError(message);
     }
   };
@@ -358,7 +359,7 @@ function Chat() {
       setActiveThreadId(response.thread_id);
       await loadThreads();
     } catch (err) {
-      const message = err?.response?.data?.detail || (err?.message ? `Unable to reach assistant backend (${err.message}). Ensure the backend server is running on http://localhost:8000.` : "Unable to get response from assistant.");
+      const message = formatErrorMessage(err?.response?.data?.detail, err?.message ? `Unable to reach assistant backend (${err.message}).` : "Unable to get response from assistant.");
       setError(message);
     } finally {
       setLoading(false);
@@ -376,7 +377,7 @@ function Chat() {
       await renameThread(threadId, newTitle);
       await loadThreads();
     } catch (err) {
-      const message = err?.response?.data?.detail || "Failed to rename thread.";
+      const message = formatErrorMessage(err?.response?.data?.detail, "Failed to rename thread.");
       setError(message);
     }
   };
@@ -399,7 +400,7 @@ function Chat() {
       );
       await loadThreads();
     } catch (err) {
-      const message = err?.response?.data?.detail || "Failed to delete question.";
+      const message = formatErrorMessage(err?.response?.data?.detail, "Failed to delete question.");
       setError(message);
     }
   };
@@ -418,7 +419,7 @@ function Chat() {
         }
       }
     } catch (err) {
-      const message = err?.response?.data?.detail || "Failed to delete thread.";
+      const message = formatErrorMessage(err?.response?.data?.detail, "Failed to delete thread.");
       setError(message);
     }
   };
@@ -438,7 +439,7 @@ function Chat() {
         },
       ]);
     } catch (err) {
-      const message = err?.response?.data?.detail || "Failed to clear all chat history.";
+      const message = formatErrorMessage(err?.response?.data?.detail, "Failed to clear all chat history.");
       setError(message);
       throw err;
     }
@@ -496,7 +497,7 @@ function Chat() {
       setActiveThreadId(response.thread_id);
       await loadThreads();
     } catch (err) {
-      const message = err?.response?.data?.detail || (err?.message ? `Unable to reach assistant backend (${err.message}). Ensure the backend server is running on http://localhost:8000.` : "Unable to get response from assistant.");
+      const message = formatErrorMessage(err?.response?.data?.detail, err?.message ? `Unable to reach assistant backend (${err.message}).` : "Unable to get response from assistant.");
       setError(message);
     } finally {
       setLoading(false);
