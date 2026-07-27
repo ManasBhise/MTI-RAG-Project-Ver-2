@@ -37,7 +37,7 @@ def _normalize_result(result: Any) -> dict:
 
 def _fallback_llm_answer(question: str, user_profile: dict | None = None) -> dict | None:
 	"""Fallback LLM answer generator when full local vector store pipeline is unavailable."""
-	groq_key = os.getenv("GROQ_API_KEY", "")
+	groq_key = os.getenv("GROQ_API_KEY", "").strip()
 	if not groq_key:
 		return None
 
