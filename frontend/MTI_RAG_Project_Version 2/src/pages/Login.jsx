@@ -91,21 +91,26 @@ function Login() {
   const [error, setError] = useState("");
 
   const handleGuestLogin = () => {
-    const guestSession = {
-      access_token: "guest_session_token",
-      token_type: "bearer",
-      user: {
-        id: 0,
-        name: "Guest Meteorologist",
-        email: "guest@mti.gov.in",
-        role: "Trainee Meteorologist",
-        organization: "India Meteorological Department (IMD)",
-        response_tone: "moderate",
-        custom_instructions: "",
-        use_emojis: true,
-      },
+    const guestToken = `guest_session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const guestUser = {
+      id: 0,
+      name: "Guest Meteorologist",
+      email: "guest@mti.gov.in",
+      role: "Trainee Meteorologist",
+      organization: "India Meteorological Department (IMD)",
+      response_tone: "moderate",
+      custom_instructions: "",
+      use_emojis: true,
     };
-    saveSession(guestSession, true);
+
+    // Store ONLY in sessionStorage for strict browser-tab session isolation
+    sessionStorage.setItem("mti_access_token", guestToken);
+    sessionStorage.setItem("mti_user", JSON.stringify(guestUser));
+    
+    // Clear persistent localStorage so sharing link to another device forces authentication
+    localStorage.removeItem("mti_access_token");
+    localStorage.removeItem("mti_user");
+
     navigate("/chat", { replace: true });
   };
 

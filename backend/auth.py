@@ -96,7 +96,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 		headers={"WWW-Authenticate": "Bearer"},
 	)
 
-	if token in ("guest_session_token", "guest"):
+	if token and (token.startswith("guest") or token == "guest"):
 		guest_user = db.query(User).filter(User.email == "guest@mti.gov.in").first()
 		if not guest_user:
 			guest_user = User(
