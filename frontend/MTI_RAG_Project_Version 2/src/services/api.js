@@ -3,6 +3,7 @@ import axios from "axios";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const TOKEN_KEY = "mti_access_token";
 const USER_KEY = "mti_user";
+const DEVICE_KEY = "mti_device_id";
 
 const api = axios.create({
 	baseURL: API_BASE_URL,
@@ -11,7 +12,38 @@ const api = axios.create({
 	},
 });
 
-api.interceptors.request.use((config) => {
+export const getDeviceId = () => {
+	let deviceId = localStorage.getItem(DEVICE_KEY);
+	if (!deviceId) {
+		if (typeof crypto !== "undefined" && crypto.randomUUID) {
+			deviceId = "dev_" + crypto.randomUUID().replace(/-/g, "");
+		} else {
+			deviceId = "dev_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+		}
+		localStorage.setItem(DEVICE_KEY, deviceId);
+	}
+	return deviceId;
+};
+
+export const getOrInitAnonymousSession = async () => {
+	let token = getToken();
+	if (token) return token;
+
+	const deviceId = getDeviceId();
+	try {
+		const { data } = await axios.post(`${API_BASE_URL}/auth/anonymous`, { device_id: deviceId });
+		saveSession(data);
+		return data.access_token;
+	} catch (err) {
+		console.error("Failed to initialize anonymous session", err);
+		return null;
+	}
+};
+
+api.interceptors.request.use(async (config) => {
+	if (!getToken() && !config.url?.includes("/auth/anonymous")) {
+		await getOrInitAnonymousSession();
+	}
 	const token = getToken();
 	if (token) {
 		config.headers.Authorization = `Bearer ${token}`;
@@ -21,11 +53,14 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
 	(response) => response,
-	(error) => {
-		if (error.response && error.response.status === 401) {
+	async (error) => {
+		if (error.response && error.response.status === 401 && !error.config?._retry) {
+			error.config._retry = true;
 			clearSession();
-			if (window.location.pathname !== "/") {
-				window.location.href = "/";
+			const token = await getOrInitAnonymousSession();
+			if (token) {
+				error.config.headers.Authorization = `Bearer ${token}`;
+				return api(error.config);
 			}
 		}
 		return Promise.reject(error);
@@ -68,21 +103,6 @@ export const clearSession = () => {
 	sessionStorage.removeItem(USER_KEY);
 	localStorage.removeItem(TOKEN_KEY);
 	localStorage.removeItem(USER_KEY);
-};
-
-export const registerUser = async (payload) => {
-	const { data } = await api.post("/register", payload);
-	return data;
-};
-
-export const loginUser = async (payload) => {
-	const { data } = await api.post("/login", payload);
-	return data;
-};
-
-export const googleLogin = async (credential) => {
-	const { data } = await api.post("/auth/google", { credential });
-	return data;
 };
 
 export const logoutUser = async () => {

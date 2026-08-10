@@ -3,10 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { getAppTheme } from "./theme";
 
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 import Chat from "./pages/Chat";
-import ProtectedRoute from "./Components/ProtectedRoute";
 import ErrorBoundary from "./Components/ErrorBoundary";
 
 const ThemeModeContext = createContext({
@@ -38,16 +35,7 @@ function App() {
           <CssBaseline />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/chat"
-                element={
-                  <ProtectedRoute>
-                    <Chat />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="*" element={<Chat />} />
             </Routes>
           </BrowserRouter>
         </ThemeProvider>

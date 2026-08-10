@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Alert, Box, Drawer, Stack, Typography } from "@mui/material";
 import Navbar from "../Components/Navbar";
 import Sidebar from "../Components/Sidebar";
@@ -18,14 +17,13 @@ import {
   deleteThread,
   fetchThreadMessages,
   fetchThreads,
+  getOrInitAnonymousSession,
   getStoredUser,
-  logoutUser,
   renameThread,
 } from "../services/api";
 import { formatErrorMessage } from "../utils/formatError";
 
 function Chat() {
-  const navigate = useNavigate();
   const messagesEndRef = useRef(null);
 
   const { toggleDarkMode } = useThemeMode();
@@ -115,6 +113,8 @@ function Chat() {
 
   useEffect(() => {
     const initData = async () => {
+      await getOrInitAnonymousSession();
+      setError("");
       const threadData = await loadThreads();
       if (Array.isArray(threadData) && threadData.length > 0) {
         const latest = threadData[0];
@@ -311,11 +311,11 @@ function Chat() {
       }
     }
 
-    // 11. Logout Commands
-    const logoutKeywords = ["log out", "logout", "sign out", "exit account"];
-    if (logoutKeywords.some((kw) => clean.includes(kw))) {
-      setVoiceActionToast("🎙️ Voice Command Executed: Logging out...");
-      setTimeout(() => handleLogout(), 1200);
+    // 11. Reset Session Commands
+    const resetKeywords = ["reset session", "new session", "clear session", "log out", "logout", "sign out"];
+    if (resetKeywords.some((kw) => clean.includes(kw))) {
+      setVoiceActionToast("🎙️ Voice Command Executed: Resetting session...");
+      setTimeout(() => handleResetSession(), 1200);
       return true;
     }
 
@@ -504,15 +504,21 @@ function Chat() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-    } catch {
-      
-    } finally {
-      clearSession();
-      navigate("/", { replace: true });
-    }
+  const handleResetSession = async () => {
+    clearSession();
+    setThreads([]);
+    setActiveThreadId(null);
+    setMessages([
+      {
+        id: "welcome-1",
+        role: "assistant",
+        text: "Welcome to the Meteorological Training Institute Knowledge Repository. You may query official training literature, weather observation manuals, and meteorological documentations.",
+        references: ["MTI Knowledge Base Index"],
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+    await getOrInitAnonymousSession();
+    await loadThreads();
   };
 
   return (
@@ -570,8 +576,8 @@ function Chat() {
             }
           }}
           isSidebarOpen={desktopSidebarOpen}
-          userName={user?.name || "MTI User"}
-          onLogout={handleLogout}
+          userName={user?.name || "Meteorologist"}
+          onLogout={handleResetSession}
           onOpenHistory={() => setHistoryDrawerOpen(true)}
           onDownloadConversation={handleDownloadConversation}
           onOpenVoiceControl={() => setVoiceControlOpen(true)}

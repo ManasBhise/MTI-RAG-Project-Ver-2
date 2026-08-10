@@ -262,26 +262,29 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
             </Typography>
           </Box>
 
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={onLogout}
-            sx={{
-              fontSize: "0.775rem",
-              py: "3px",
-              px: "10px",
-              color: "text.secondary",
-              borderColor: "#cbd5e1",
-              textTransform: "none",
-              borderRadius: "6px",
-              "&:hover": {
-                borderColor: "#94a3b8",
-                bgcolor: "#f1f5f9",
-              },
-            }}
-          >
-            Logout
-          </Button>
+          {onLogout && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onLogout}
+              sx={{
+                fontSize: "0.775rem",
+                py: "3px",
+                px: "10px",
+                color: "text.secondary",
+                borderColor: "divider",
+                textTransform: "none",
+                borderRadius: "6px",
+                "&:hover": {
+                  borderColor: "#2563eb",
+                  color: "#2563eb",
+                  bgcolor: "rgba(37, 99, 235, 0.06)",
+                },
+              }}
+            >
+              Reset Session
+            </Button>
+          )}
         </Box>
       </Toolbar>
     </AppBar>

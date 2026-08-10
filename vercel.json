@@ -19,14 +19,6 @@
       "dest": "api/index.py"
     },
     {
-      "src": "/register",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/login",
-      "dest": "api/index.py"
-    },
-    {
       "src": "/auth/(.*)",
       "dest": "api/index.py"
     },
