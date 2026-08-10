@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogContent, IconButton, MenuItem, Paper, Select, Stack, TextField, Tooltip, Typography } from "@mui/material";
-import imdLogo from "../assets/imd_logo.jpg";
+import imdLogo from "../assets/imd_logo.png";
 import { exportMessageToPdf } from "../utils/exportPdf";
 import { translateToHindiClient } from "../utils/formatError";
 import { generateDiagram, translateMessage } from "../services/api";
@@ -624,15 +624,17 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
           src={imdLogo}
           alt="MTI Knowledge System"
           sx={{
-            width: { xs: 28, sm: 32 },
-            height: { xs: 28, sm: 32 },
+            width: { xs: 32, sm: 38 },
+            height: { xs: 32, sm: 38 },
             mt: 0.25,
             flexShrink: 0,
-            border: "1px solid #cbd5e1",
-            bgcolor: "#ffffff",
-            p: "2px",
+            bgcolor: "transparent",
+            p: 0,
             "& img": {
               objectFit: "contain",
+              width: "100%",
+              height: "100%",
+              filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.1))",
             },
           }}
         />

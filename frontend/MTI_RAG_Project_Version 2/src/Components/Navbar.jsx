@@ -1,5 +1,5 @@
 import { AppBar, Avatar, Box, Button, Chip, IconButton, Toolbar, Tooltip, Typography } from "@mui/material";
-import imdLogo from "../assets/imd_logo.jpg";
+import imdLogo from "../assets/imd_logo.png";
 
 function MenuIcon({ size = 19, isSidebarOpen = false }) {
   return (
@@ -11,17 +11,19 @@ function MenuIcon({ size = 19, isSidebarOpen = false }) {
   );
 }
 
-function LogoIcon({ size = 32 }) {
+function LogoIcon({ size = { xs: 34, sm: 42 } }) {
   return (
     <Box
       component="img"
       src={imdLogo}
       alt="IMD Logo"
       sx={{
-        width: size,
+        width: "auto",
         height: size,
+        maxHeight: size,
         objectFit: "contain",
-        borderRadius: "6px",
+        display: "block",
+        filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.08))",
       }}
     />
   );
@@ -133,20 +135,17 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
           </IconButton>
         </Tooltip>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.75, sm: 1.25 }, flexGrow: 1, minWidth: 0 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 }, flexGrow: 1, minWidth: 0 }}>
           <Box
             sx={{
-              width: { xs: 28, sm: 34 },
-              height: { xs: 28, sm: 34 },
-              borderRadius: "7px",
+              height: { xs: 34, sm: 42 },
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              overflow: "hidden",
               flexShrink: 0,
             }}
           >
-            <LogoIcon size={34} />
+            <LogoIcon size={{ xs: 34, sm: 42 }} />
           </Box>
           <Box sx={{ textAlign: "left", minWidth: 0 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
