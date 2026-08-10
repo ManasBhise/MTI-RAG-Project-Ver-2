@@ -75,15 +75,56 @@ def _compute_keyword_overlap(query: str, text: str) -> float:
 
 
 def _is_meteorology_or_mti_query(question: str) -> bool:
-	q_lower = question.lower()
+	if not question or len(question.strip()) < 2:
+		return False
+
+	q_lower = question.lower().strip()
+
+	# Greetings and basic assistant identification are allowed
+	greetings = {"hi", "hello", "hey", "namaste", "good morning", "good evening", "good afternoon", "help", "who are you", "what can you do"}
+	clean_q = re.sub(r"[^\w\s]", "", q_lower).strip()
+	if clean_q in greetings:
+		return True
+
 	non_domain_triggers = [
-		"president", "prime minister", "capital of", "who is the", "actor", "movie",
-		"recipe", "bake", "nba", "football", "cricket match", "bitcoin", "crypto",
-		"governor", "celebrity", "song", "lyrics"
+		# History / Politics / Leaders
+		"hitler", "nazi", "world war", "president", "prime minister", "governor", "politician", "politics", "election",
+		"democracy", "monarchy", "capital of", "who is the prime minister", "who is the president", "who won",
+		# Entertainment / Movies / Sports
+		"movie", "film", "cinema", "actor", "actress", "celebrity", "song", "lyrics", "singer", "album",
+		"football", "cricket match", "ipl", "fifa", "nba", "basketball", "tennis", "olympics", "game",
+		# Tech Jobs / Internships / Corporate
+		"intern at", "internship at", "software intern", "software engineer interview", "get into google",
+		"get select as", "get selected as", "microsoft", "amazon", "apple", "netflix", "facebook", "meta",
+		"resume tips", "placement", "job interview", "campus interview", "software developer", "hiring process",
+		# Generic Coding / Math trivia
+		"code for addition", "add two numbers", "write a code for", "write me a code for",
+		"write a python code to add", "calculator program", "fibonacci", "factorial program",
+		"binary search", "bubble sort", "linked list", "leetcode", "hackerrank", "write a game",
+		"code for subtraction", "write a function to add", "sum of two numbers",
+		# Lifestyle / Health / Cooking / Finance
+		"recipe", "how to cook", "bake a cake", "diet plan", "workout", "symptoms of", "medical diagnosis",
+		"cure for", "headache", "bitcoin", "cryptocurrency", "stock market", "shares to buy", "dating advice",
+		"love advice", "horoscope", "astrology", "zodiac"
 	]
+
+	meteorology_exceptions = [
+		"weather", "climate", "meteorol", "atmosphere", "atmospheric", "forecast", "monsoon",
+		"cyclone", "radar", "satellite", "wind", "temperature", "pressure", "humidity", "rain",
+		"precipitation", "cloud", "nwp", "wrf", "mti", "imd", "wmo", "sounding", "radiosonde"
+	]
+
 	for trigger in non_domain_triggers:
-		if trigger in q_lower and "weather" not in q_lower and "climate" not in q_lower and "mti" not in q_lower and "meteorol" not in q_lower:
+		if trigger in q_lower:
+			if not any(exc in q_lower for exc in meteorology_exceptions):
+				return False
+
+	# If query asks for generic programming without meteorological context
+	code_keywords = ["write a code", "write me a code", "write python code", "write code", "give me code", "write a function", "write a script", "create a program"]
+	if any(kw in q_lower for kw in code_keywords):
+		if not any(exc in q_lower for exc in meteorology_exceptions):
 			return False
+
 	return True
 
 
