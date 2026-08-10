@@ -457,6 +457,14 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
               </Box>
             </Box>
           )}
+          <Box sx={{ mt: 2.5, p: 1.75, borderRadius: "8px", bgcolor: darkMode ? "rgba(245, 158, 11, 0.1)" : "#fffbeb", border: "1px solid", borderColor: darkMode ? "rgba(245, 158, 11, 0.25)" : "#fef3c7" }}>
+            <Typography variant="body2" sx={{ fontWeight: 650, fontSize: "0.8rem", color: darkMode ? "#fbbf24" : "#92400e", mb: 0.5 }}>
+              ⚠️ AI Advisory & Verification Disclaimer
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.725rem", lineHeight: 1.5 }}>
+              The Meteorological Training Institute (MTI) AI Knowledge Assistant utilizes advanced Large Language Models and Retrieval-Augmented Generation. While designed to retrieve accurate institute courseware, AI models can make mistakes or produce hallucinated interpretations. Users must cross-verify critical weather data, numerical values, and operational procedures with official IMD manuals and publications.
+            </Typography>
+          </Box>
         </Box>
       </DialogContent>
 

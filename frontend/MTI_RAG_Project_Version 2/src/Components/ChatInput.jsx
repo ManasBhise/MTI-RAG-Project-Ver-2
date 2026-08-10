@@ -291,9 +291,33 @@ function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange, 
         </Button>
       </Box>
 
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block", textAlign: "left", fontSize: "0.7rem" }}>
-        Press <strong>Enter</strong> to send • <strong>Shift + Enter</strong> for new line • Click 🎙️ for <strong>Voice Input</strong>
-      </Typography>
+      <Box
+        sx={{
+          mt: 0.85,
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", md: "center" },
+          gap: 0.5,
+        }}
+      >
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", opacity: 0.85 }}>
+          Press <strong>Enter</strong> to send • <strong>Shift + Enter</strong> for new line • Click 🎙️ for <strong>Voice Input</strong>
+        </Typography>
+
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{
+            fontSize: "0.7rem",
+            opacity: 0.85,
+            textAlign: { xs: "left", md: "right" },
+            lineHeight: 1.4,
+          }}
+        >
+          <strong style={{ color: "#d97706" }}>Disclaimer:</strong> AI-generated responses may contain inaccuracies. Please cross-verify critical meteorological data with official IMD documentation.
+        </Typography>
+      </Box>
     </Box>
   );
 }
