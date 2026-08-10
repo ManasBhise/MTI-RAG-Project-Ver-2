@@ -191,19 +191,22 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: "14px",
+          borderRadius: { xs: "12px", sm: "14px" },
+          m: { xs: 1.25, sm: 2 },
+          width: { xs: "calc(100% - 20px)", sm: "auto" },
+          maxHeight: { xs: "90dvh", sm: "85vh" },
           p: 0.5,
           textAlign: "left",
         },
       }}
     >
-      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: { xs: 2, sm: 3 }, pb: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Box sx={{ color: "#2563eb", display: "flex" }}>
             <SettingsIcon />
           </Box>
-          <Typography variant="h6" sx={{ fontSize: "1.05rem", fontWeight: 700 }}>
-            Assistant Personalization & Settings
+          <Typography variant="h6" sx={{ fontSize: { xs: "0.95rem", sm: "1.05rem" }, fontWeight: 700 }}>
+            Personalization & Settings
           </Typography>
         </Box>
         <IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
@@ -213,7 +216,7 @@ function SettingsModal({ open, onClose, onDeleteAllHistory }) {
 
       <Divider />
 
-      <DialogContent sx={{ py: 2.5, px: 3, maxHeight: "75vh", overflowY: "auto" }}>
+      <DialogContent sx={{ py: { xs: 2, sm: 2.5 }, px: { xs: 2, sm: 3 }, maxHeight: { xs: "72dvh", sm: "75vh" }, overflowY: "auto" }}>
         {successMessage && (
           <Alert severity="success" sx={{ mb: 2, fontSize: "0.8125rem", py: 0.25 }}>
             {successMessage}

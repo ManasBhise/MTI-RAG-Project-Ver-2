@@ -90,12 +90,12 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
   const handleStartRename = (e, chat) => {
     e.stopPropagation();
     setEditingThreadId(chat.id);
-    setEditTitle(chat.title);
+    setEditTitle(chat.title || "");
   };
 
   const handleSaveRename = async (e, threadId) => {
     if (e) e.stopPropagation();
-    if (editTitle.strip && editTitle.trim().length > 0 && onRenameThread) {
+    if (editTitle && editTitle.trim().length > 0 && onRenameThread) {
       await onRenameThread(threadId, editTitle.trim());
     }
     setEditingThreadId(null);
@@ -111,7 +111,8 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
   return (
     <Box
       sx={{
-        width: 260,
+        width: { xs: "82vw", sm: 260 },
+        maxWidth: 300,
         height: "100%",
         display: "flex",
         flexDirection: "column",
@@ -121,7 +122,7 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
         textAlign: "left",
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, p: 2, pb: 1.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, p: { xs: 1.5, sm: 2 }, pb: 1.25 }}>
         <Button
           variant="contained"
           fullWidth
@@ -132,7 +133,7 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
             </Box>
           }
           sx={{
-            py: 1.1,
+            py: { xs: 1, sm: 1.1 },
             px: 2,
             borderRadius: "10px",
             fontSize: "0.8375rem",
@@ -173,7 +174,6 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
                   bgcolor: "rgba(37, 99, 235, 0.08)",
                   color: "#2563eb",
                   borderColor: "rgba(37, 99, 235, 0.3)",
-                  transform: "scale(1.05)",
                 },
               }}
             >
@@ -185,7 +185,7 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
 
       <Divider sx={{ borderColor: "divider", opacity: 0.6 }} />
 
-      <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+      <Box sx={{ px: 2, pt: 1.5, pb: 0.75 }}>
         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", fontSize: "0.6875rem" }}>
           Conversations
         </Typography>
@@ -209,14 +209,14 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
                 sx={{
                   borderRadius: "6px",
                   mb: 0.5,
-                  py: 0.75,
+                  py: { xs: 0.85, sm: 0.75 },
                   px: 1.25,
                   gap: 1,
                   borderLeft: isSelected ? "3px solid #2563eb" : "3px solid transparent",
                   bgcolor: isSelected ? "rgba(37, 99, 235, 0.06)" : "transparent",
                   "&:hover": {
                     bgcolor: isSelected ? "action.selected" : "action.hover",
-                    "& .action-btn": { opacity: 0.8 },
+                    "& .action-btn": { opacity: 1 },
                   },
                 }}
               >
@@ -238,7 +238,7 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
                         fontWeight: 500,
                         px: 0.75,
                         py: 0.1,
-                        bgcolor: "#ffffff",
+                        bgcolor: "background.paper",
                         border: "1px solid #2563eb",
                         borderRadius: "4px",
                         flex: 1,
@@ -271,7 +271,7 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
                     />
 
                     {chat.id !== "current" && (
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, flexShrink: 0 }}>
                         {onDownloadConversation && isSelected && (
                           <Tooltip title="Export conversation as PDF" placement="top">
                             <IconButton
@@ -284,7 +284,7 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
                               }}
                               sx={{
                                 p: 0.4,
-                                opacity: 0,
+                                opacity: { xs: 0.75, sm: 0 },
                                 transition: "opacity 0.2s",
                                 color: "text.secondary",
                                 "&:hover": { color: "#2563eb" },
@@ -303,7 +303,7 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
                             onClick={(e) => handleStartRename(e, chat)}
                             sx={{
                               p: 0.4,
-                              opacity: 0,
+                              opacity: { xs: 0.75, sm: 0 },
                               transition: "opacity 0.2s",
                               color: "text.secondary",
                               "&:hover": { color: "#2563eb" },
@@ -324,7 +324,7 @@ function Sidebar({ chats = [], selectedChatId = null, onNewChat, onSelectChat, o
                             }}
                             sx={{
                               p: 0.4,
-                              opacity: 0,
+                              opacity: { xs: 0.75, sm: 0 },
                               transition: "opacity 0.2s",
                               color: "text.secondary",
                               "&:hover": { color: "#ef4444" },

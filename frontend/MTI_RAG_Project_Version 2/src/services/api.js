@@ -1,15 +1,20 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL !== undefined
+    ? import.meta.env.VITE_API_BASE_URL
+    : import.meta.env.PROD
+    ? ""
+    : "http://localhost:8000";
 const TOKEN_KEY = "mti_access_token";
 const USER_KEY = "mti_user";
 const DEVICE_KEY = "mti_device_id";
 
 const api = axios.create({
-	baseURL: API_BASE_URL,
-	headers: {
-		"Content-Type": "application/json",
-	},
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 export const getDeviceId = () => {

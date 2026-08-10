@@ -115,7 +115,8 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: { xs: "100%", sm: 380 },
+          width: { xs: "100%", sm: 360 },
+          maxWidth: "100vw",
           bgcolor: "background.paper",
           color: "text.primary",
           display: "flex",
@@ -127,7 +128,7 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
       }}
     >
       {/* Drawer Header */}
-      <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider" }}>
+      <Box sx={{ p: { xs: 1.5, sm: 2 }, borderBottom: "1px solid", borderColor: "divider" }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box sx={{ color: "#2563eb", display: "flex", alignItems: "center" }}>
@@ -166,7 +167,7 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
             <SearchIcon />
           </InputAdornment>
           <InputBase
-            placeholder="Search past questions in thread..."
+            placeholder="Search past questions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             sx={{ fontSize: "0.775rem", flex: 1, color: "text.primary" }}
@@ -175,7 +176,7 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
       </Box>
 
       {/* Questions List */}
-      <Box sx={{ flex: 1, overflowY: "auto", p: 1.75 }}>
+      <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 1.25, sm: 1.75 } }}>
         {filteredTurns.length === 0 ? (
           <Box sx={{ py: 6, px: 2, textAlign: "center" }}>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8125rem" }}>
@@ -189,7 +190,7 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
                 key={turn.turnIndex}
                 elevation={0}
                 sx={{
-                  p: 1.5,
+                  p: { xs: 1.25, sm: 1.5 },
                   borderRadius: "10px",
                   border: "1px solid",
                   borderColor: "divider",
@@ -226,7 +227,7 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
                 </Typography>
 
                 {/* Action Buttons */}
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.75 }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: { xs: 0.5, sm: 0.75 }, flexWrap: "wrap" }}>
                   <Tooltip title="Copy question" placement="top">
                     <Button
                       size="small"
@@ -235,7 +236,7 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
                       sx={{
                         fontSize: "0.7rem",
                         py: 0.3,
-                        px: 1,
+                        px: 0.75,
                         textTransform: "none",
                         color: copiedId === turn.turnIndex ? "#16a34a" : "text.secondary",
                         fontWeight: 600,
@@ -259,7 +260,7 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
                       sx={{
                         fontSize: "0.7rem",
                         py: 0.3,
-                        px: 1,
+                        px: 0.75,
                         borderRadius: "6px",
                         textTransform: "none",
                         fontWeight: 600,
@@ -284,7 +285,7 @@ function ThreadHistoryDrawer({ open, onClose, messages = [], threadTitle = "Acti
                         sx={{
                           fontSize: "0.7rem",
                           py: 0.3,
-                          px: 1,
+                          px: 0.75,
                           textTransform: "none",
                           color: "#ef4444",
                           fontWeight: 600,

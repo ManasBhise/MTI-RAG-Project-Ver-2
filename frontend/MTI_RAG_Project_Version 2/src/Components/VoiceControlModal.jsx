@@ -204,13 +204,16 @@ function VoiceControlModal({ open, onClose, onExecuteCommand }) {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: "16px",
+          borderRadius: { xs: "12px", sm: "16px" },
+          m: { xs: 1.25, sm: 2 },
+          width: { xs: "calc(100% - 20px)", sm: "auto" },
+          maxHeight: { xs: "90dvh", sm: "85vh" },
           p: 0.5,
           textAlign: "left",
         },
       }}
     >
-      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: { xs: 2, sm: 3 }, pb: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Box
             sx={{
@@ -222,16 +225,17 @@ function VoiceControlModal({ open, onClose, onExecuteCommand }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              flexShrink: 0,
             }}
           >
             <MicIcon />
           </Box>
           <Box>
-            <Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 700, lineHeight: 1.2 }}>
+            <Typography variant="h6" sx={{ fontSize: { xs: "0.925rem", sm: "1rem" }, fontWeight: 700, lineHeight: 1.2 }}>
               Voice Assistant Command Center
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.725rem" }}>
-              Speak any app command to execute features hands-free
+              Speak any app command hands-free
             </Typography>
           </Box>
         </Box>
@@ -242,12 +246,12 @@ function VoiceControlModal({ open, onClose, onExecuteCommand }) {
 
       <Divider />
 
-      <DialogContent sx={{ py: 2.5, px: 3, maxHeight: "75vh", overflowY: "auto" }}>
+      <DialogContent sx={{ py: { xs: 2, sm: 2.5 }, px: { xs: 2, sm: 3 }, maxHeight: { xs: "72dvh", sm: "75vh" }, overflowY: "auto" }}>
         {/* Live Listening Banner */}
         <Box
           sx={{
-            p: 2,
-            mb: 2.5,
+            p: { xs: 1.5, sm: 2 },
+            mb: 2,
             borderRadius: "12px",
             bgcolor: isListening ? "rgba(239, 68, 68, 0.06)" : "action.hover",
             border: "1px solid",
@@ -257,12 +261,12 @@ function VoiceControlModal({ open, onClose, onExecuteCommand }) {
         >
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1, mb: 1 }}>
             <Chip
-              label={isListening ? "🎙️ LISTENING FOR APP COMMANDS" : "🎙️ PAUSED"}
+              label={isListening ? "🎙️ LISTENING FOR COMMANDS" : "🎙️ PAUSED"}
               size="small"
               color={isListening ? "error" : "default"}
               sx={{
                 fontWeight: 750,
-                fontSize: "0.7rem",
+                fontSize: "0.685rem",
                 letterSpacing: "0.03em",
                 animation: isListening ? "pulse 1.5s infinite" : "none",
                 "@keyframes pulse": {
@@ -298,23 +302,23 @@ function VoiceControlModal({ open, onClose, onExecuteCommand }) {
           </Box>
         </Box>
 
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: "0.85rem", color: "text.primary", mb: 1.5 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: "0.835rem", color: "text.primary", mb: 1.25 }}>
           Available Voice Commands & Controls:
         </Typography>
 
-        <Stack spacing={2}>
+        <Stack spacing={1.5}>
           {COMMAND_GROUPS.map((group, idx) => (
-            <Box key={idx} sx={{ p: 1.5, borderRadius: "10px", bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
-              <Typography variant="caption" sx={{ color: "#2563eb", fontWeight: 700, fontSize: "0.75rem", display: "block", mb: 1 }}>
+            <Box key={idx} sx={{ p: { xs: 1.25, sm: 1.5 }, borderRadius: "10px", bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
+              <Typography variant="caption" sx={{ color: "#2563eb", fontWeight: 700, fontSize: "0.75rem", display: "block", mb: 0.75 }}>
                 {group.category}
               </Typography>
               <Stack spacing={0.75}>
                 {group.commands.map((cmd, cIdx) => (
-                  <Box key={cIdx} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1 }}>
+                  <Box key={cIdx} sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, gap: 0.25 }}>
                     <Typography variant="body2" sx={{ fontSize: "0.8125rem", fontWeight: 600, color: "text.primary" }}>
                       {cmd.trigger}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.725rem", textAlign: "right" }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.725rem", textAlign: { xs: "left", sm: "right" } }}>
                       {cmd.desc}
                     </Typography>
                   </Box>

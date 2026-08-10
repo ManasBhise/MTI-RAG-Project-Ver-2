@@ -522,7 +522,18 @@ function Chat() {
   };
 
   return (
-    <Box sx={{ height: "100vh", display: "flex", bgcolor: "background.default", overflow: "hidden", textAlign: "left" }}>
+    <Box
+      sx={{
+        height: "100%",
+        minHeight: "100vh",
+        minHeight: "100dvh",
+        maxHeight: "100dvh",
+        display: "flex",
+        bgcolor: "background.default",
+        overflow: "hidden",
+        textAlign: "left",
+      }}
+    >
       <Box
         sx={{
           display: { xs: "none", md: "block" },
@@ -566,7 +577,7 @@ function Chat() {
         />
       </Drawer>
 
-      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}>
+      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
         <Navbar
           onToggleSidebar={() => {
             if (window.innerWidth < 900) {
@@ -583,7 +594,7 @@ function Chat() {
           onOpenVoiceControl={() => setVoiceControlOpen(true)}
         />
 
-        <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 2, sm: 3 } }}>
+        <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 1.25, sm: 2, md: 3 }, WebkitOverflowScrolling: "touch" }}>
           <Box sx={{ maxWidth: "960px", mx: "auto", width: "100%" }}>
             {voiceActionToast && (
               <Alert
@@ -611,7 +622,7 @@ function Chat() {
                 </Typography>
               </Box>
             ) : (
-              <Stack spacing={2}>
+              <Stack spacing={{ xs: 1.5, sm: 2 }}>
                 {messages.map((message, index) => {
                   let userQuestion = "";
                   if (message.role === "assistant") {
@@ -653,7 +664,7 @@ function Chat() {
           </Box>
         </Box>
 
-        <Box sx={{ maxWidth: "1350px", mx: "auto", width: "100%", px: { xs: 1, sm: 2 } }}>
+        <Box sx={{ maxWidth: "1350px", mx: "auto", width: "100%", px: { xs: 0, sm: 1, md: 2 } }}>
           <ChatInput
             onSend={handleSend}
             disabled={loading}

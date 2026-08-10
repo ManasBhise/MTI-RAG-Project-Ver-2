@@ -33,9 +33,9 @@ function MicOffIcon() {
 }
 
 const MODES = [
-  { id: "basic", label: "🌱 Basic Language", hint: "Simple terms & analogies" },
-  { id: "moderate", label: "⚖️ Moderate Level", hint: "Balanced educational response" },
-  { id: "research", label: "🔬 In-Depth Research", hint: "Technical equations, NWP & deep domain analysis" },
+  { id: "basic", label: "🌱 Basic", fullLabel: "🌱 Basic Language", hint: "Simple terms & analogies" },
+  { id: "moderate", label: "⚖️ Moderate", fullLabel: "⚖️ Moderate Level", hint: "Balanced educational response" },
+  { id: "research", label: "🔬 Research", fullLabel: "🔬 In-Depth Research", hint: "Technical equations, NWP & deep domain analysis" },
 ];
 
 function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange, onVoiceCommand }) {
@@ -132,27 +132,74 @@ function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange, 
   };
 
   return (
-    <Box sx={{ p: 2, borderTop: "1px solid", borderColor: "divider", bgcolor: "background.paper", textAlign: "left" }}>
+    <Box
+      sx={{
+        px: { xs: 1.25, sm: 2 },
+        pt: { xs: 1, sm: 1.5 },
+        pb: { xs: "calc(8px + env(safe-area-inset-bottom, 0px))", sm: 1.5 },
+        borderTop: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+        textAlign: "left",
+      }}
+    >
       {/* Response Depth Mode Selector & Voice Input Indicator */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.25, flexWrap: "wrap", gap: 1 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, fontSize: "0.7rem", color: "text.secondary" }}>
-            Response Depth:
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 1,
+          gap: 1,
+        }}
+      >
+        <Box
+          className="no-scrollbar"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.75,
+            overflowX: "auto",
+            whiteSpace: "nowrap",
+            flex: 1,
+            py: 0.25,
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 650,
+              fontSize: "0.685rem",
+              color: "text.secondary",
+              flexShrink: 0,
+              display: { xs: "none", sm: "inline" },
+            }}
+          >
+            Depth:
           </Typography>
-          <Stack direction="row" spacing={0.75}>
+          <Stack direction="row" spacing={0.75} sx={{ flexShrink: 0 }}>
             {MODES.map((item) => {
               const isSelected = mode === item.id;
               return (
                 <Tooltip key={item.id} title={item.hint} placement="top">
                   <Chip
-                    label={item.label}
+                    label={
+                      <Box component="span">
+                        <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                          {item.label}
+                        </Box>
+                        <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                          {item.fullLabel}
+                        </Box>
+                      </Box>
+                    }
                     size="small"
                     onClick={() => onModeChange && onModeChange(item.id)}
                     sx={{
-                      fontSize: "0.725rem",
-                      height: 24,
+                      fontSize: { xs: "0.685rem", sm: "0.725rem" },
+                      height: { xs: 22, sm: 24 },
                       cursor: "pointer",
-                      fontWeight: isSelected ? 600 : 400,
+                      fontWeight: isSelected ? 650 : 450,
                       bgcolor: isSelected ? "rgba(37, 99, 235, 0.15)" : "action.hover",
                       color: isSelected ? "#2563eb" : "text.secondary",
                       border: "1px solid",
@@ -171,15 +218,16 @@ function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange, 
 
         {isListening && (
           <Chip
-            label="🎙️ Listening... Speak now"
+            label="🎙️ Listening..."
             size="small"
             color="error"
             variant="outlined"
             onClick={toggleListening}
             sx={{
               height: 22,
-              fontSize: "0.6875rem",
+              fontSize: "0.675rem",
               fontWeight: 700,
+              flexShrink: 0,
               animation: "pulse 1.5s infinite",
               "@keyframes pulse": {
                 "0%": { opacity: 1 },
@@ -191,10 +239,11 @@ function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange, 
         )}
       </Box>
 
-      <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-end", maxWidth: "100%" }}>
+      {/* Main Input Row */}
+      <Box sx={{ display: "flex", gap: { xs: 0.75, sm: 1.25 }, alignItems: "flex-end", maxWidth: "100%" }}>
         <TextField
           fullWidth
-          placeholder={isListening ? "Listening to your voice... Speak your question..." : "Ask a question about MTI training material or speak your query..."}
+          placeholder={isListening ? "Listening... Speak your query..." : "Ask a question about MTI meteorological materials..."}
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={(event) => {
@@ -204,18 +253,18 @@ function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange, 
             }
           }}
           multiline
-          minRows={4}
-          maxRows={16}
+          minRows={2}
+          maxRows={6}
           disabled={disabled}
           sx={{
             "& .MuiOutlinedInput-root": {
-              borderRadius: "14px",
-              fontSize: "0.95rem",
-              lineHeight: 1.6,
-              p: 2,
+              borderRadius: { xs: "12px", sm: "14px" },
+              fontSize: { xs: "0.875rem", sm: "0.925rem" },
+              lineHeight: 1.5,
+              p: { xs: 1.25, sm: 1.75 },
               bgcolor: isListening ? "rgba(239, 68, 68, 0.04)" : "background.default",
               color: "text.primary",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+              boxShadow: "0 1px 4px rgba(0, 0, 0, 0.04)",
               "& fieldset": {
                 borderColor: isListening ? "#ef4444" : "#cbd5e1",
               },
@@ -237,19 +286,18 @@ function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange, 
               onClick={toggleListening}
               disabled={disabled || !speechSupported}
               sx={{
-                width: 52,
-                height: 52,
-                borderRadius: "14px",
+                width: { xs: 44, sm: 48 },
+                height: { xs: 44, sm: 48 },
+                borderRadius: { xs: "12px", sm: "14px" },
                 border: "1px solid",
                 borderColor: isListening ? "#ef4444" : "rgba(37, 99, 235, 0.2)",
                 bgcolor: isListening ? "#ef4444" : "rgba(37, 99, 235, 0.06)",
                 color: isListening ? "#ffffff" : "#2563eb",
-                boxShadow: isListening ? "0 4px 14px rgba(239, 68, 68, 0.4)" : "0 2px 6px rgba(0, 0, 0, 0.03)",
+                flexShrink: 0,
                 transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                 "&:hover": {
-                  transform: "translateY(-1.5px)",
+                  transform: "translateY(-1px)",
                   bgcolor: isListening ? "#dc2626" : "rgba(37, 99, 235, 0.12)",
-                  boxShadow: isListening ? "0 6px 18px rgba(239, 68, 68, 0.5)" : "0 4px 12px rgba(37, 99, 235, 0.18)",
                 },
                 "&:active": {
                   transform: "translateY(0)",
@@ -261,25 +309,30 @@ function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange, 
           </span>
         </Tooltip>
 
+        {/* Send Button */}
         <Button
           variant="contained"
           onClick={handleSend}
           disabled={disabled || !value.trim()}
           sx={{
-            minWidth: 110,
-            height: 52,
-            borderRadius: "14px",
-            fontSize: "0.9125rem",
+            minWidth: { xs: 44, sm: 92 },
+            width: { xs: 44, sm: "auto" },
+            height: { xs: 44, sm: 48 },
+            px: { xs: 0, sm: 2 },
+            borderRadius: { xs: "12px", sm: "14px" },
+            fontSize: "0.875rem",
             fontWeight: 650,
-            letterSpacing: "0.01em",
             textTransform: "none",
+            flexShrink: 0,
             background: disabled || !value.trim() ? "action.disabledBackground" : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-            boxShadow: disabled || !value.trim() ? "none" : "0 4px 14px rgba(37, 99, 235, 0.35)",
+            boxShadow: disabled || !value.trim() ? "none" : "0 3px 10px rgba(37, 99, 235, 0.3)",
             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            "& .MuiButton-endIcon": {
+              m: { xs: 0, sm: "0 0 0 6px" },
+            },
             "&:hover": {
               background: "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)",
-              boxShadow: "0 6px 20px rgba(37, 99, 235, 0.45)",
-              transform: "translateY(-1.5px)",
+              transform: "translateY(-1px)",
             },
             "&:active": {
               transform: "translateY(0)",
@@ -287,35 +340,38 @@ function ChatInput({ onSend, disabled = false, mode = "moderate", onModeChange, 
           }}
           endIcon={disabled ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
         >
-          {disabled ? "Sending" : "Send"}
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+            {disabled ? "Sending" : "Send"}
+          </Box>
         </Button>
       </Box>
 
+      {/* Footer Info / Disclaimer */}
       <Box
         sx={{
-          mt: 0.85,
+          mt: 0.75,
           display: "flex",
           flexDirection: { xs: "column", md: "row" },
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", md: "center" },
-          gap: 0.5,
+          gap: 0.35,
         }}
       >
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", opacity: 0.85 }}>
-          Press <strong>Enter</strong> to send • <strong>Shift + Enter</strong> for new line • Click 🎙️ for <strong>Voice Input</strong>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.685rem", opacity: 0.85, display: { xs: "none", sm: "block" } }}>
+          Press <strong>Enter</strong> to send • <strong>Shift + Enter</strong> for new line • 🎙️ for <strong>Voice Input</strong>
         </Typography>
 
         <Typography
           variant="caption"
           color="text.secondary"
           sx={{
-            fontSize: "0.7rem",
+            fontSize: "0.675rem",
             opacity: 0.85,
             textAlign: { xs: "left", md: "right" },
-            lineHeight: 1.4,
+            lineHeight: 1.35,
           }}
         >
-          <strong style={{ color: "#d97706" }}>Disclaimer:</strong> AI-generated responses may contain inaccuracies. Please cross-verify critical meteorological data with official IMD documentation.
+          <strong style={{ color: "#d97706" }}>Disclaimer:</strong> AI answers may contain inaccuracies. Verify critical data with official IMD manuals.
         </Typography>
       </Box>
     </Box>

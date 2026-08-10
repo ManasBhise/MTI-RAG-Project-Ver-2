@@ -83,6 +83,15 @@ function VoiceAssistantIcon() {
   );
 }
 
+function ResetIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+      <path d="M3 3v5h5"></path>
+    </svg>
+  );
+}
+
 function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLogout, onOpenHistory, onDownloadConversation, onOpenVoiceControl }) {
   const { darkMode, toggleDarkMode } = useThemeMode();
 
@@ -98,7 +107,7 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
         zIndex: (theme) => theme.zIndex.drawer - 1,
       }}
     >
-      <Toolbar sx={{ minHeight: "56px !important", px: { xs: 2, sm: 3 }, gap: 1.5 }}>
+      <Toolbar sx={{ minHeight: { xs: "52px !important", sm: "56px !important" }, px: { xs: 1.25, sm: 2, md: 3 }, gap: { xs: 0.75, sm: 1.25 } }}>
         <Tooltip title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"} placement="bottom">
           <IconButton
             onClick={onToggleSidebar}
@@ -109,101 +118,117 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
               color: "text.secondary",
               border: "1px solid",
               borderColor: "divider",
-              borderRadius: "9px",
-              p: 0.75,
+              borderRadius: "8px",
+              p: { xs: 0.6, sm: 0.75 },
               transition: "all 0.2s ease-in-out",
               "&:hover": {
                 bgcolor: "rgba(37, 99, 235, 0.08)",
                 color: "#2563eb",
                 borderColor: "rgba(37, 99, 235, 0.3)",
-                transform: "scale(1.05)",
               },
             }}
             aria-label="toggle sidebar"
           >
-            <MenuIcon isSidebarOpen={isSidebarOpen} />
+            <MenuIcon size={18} isSidebarOpen={isSidebarOpen} />
           </IconButton>
         </Tooltip>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, flexGrow: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.75, sm: 1.25 }, flexGrow: 1, minWidth: 0 }}>
           <Box
             sx={{
-              width: 34,
-              height: 34,
-              borderRadius: "8px",
+              width: { xs: 28, sm: 34 },
+              height: { xs: 28, sm: 34 },
+              borderRadius: "7px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
+              flexShrink: 0,
             }}
           >
             <LogoIcon size={34} />
           </Box>
-          <Box sx={{ textAlign: "left" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-              <Typography variant="h6" component="h1" sx={{ fontWeight: 600, fontSize: "0.925rem", color: "text.primary", lineHeight: 1.2 }}>
-                MTI Knowledge Assistant
+          <Box sx={{ textAlign: "left", minWidth: 0 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Typography
+                variant="h6"
+                component="h1"
+                noWrap
+                sx={{
+                  fontWeight: 650,
+                  fontSize: { xs: "0.835rem", sm: "0.925rem" },
+                  color: "text.primary",
+                  lineHeight: 1.2,
+                }}
+              >
+                MTI Assistant
               </Typography>
               <Chip
                 label="BETA"
                 size="small"
                 sx={{
-                  height: 17,
-                  fontSize: "0.625rem",
+                  height: 16,
+                  fontSize: "0.585rem",
                   fontWeight: 700,
                   bgcolor: darkMode ? "rgba(37, 99, 235, 0.2)" : "#eff6ff",
                   color: "#2563eb",
                   border: "1px solid",
                   borderColor: darkMode ? "rgba(37, 99, 235, 0.4)" : "#bfdbfe",
                   borderRadius: "4px",
+                  px: 0.25,
                 }}
               />
             </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", display: { xs: "none", sm: "block" } }}>
-              Meteorological Training Institute • India Meteorological Department
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: "0.685rem", display: { xs: "none", sm: "block" }, lineHeight: 1.2 }}>
+              Meteorological Training Institute • IMD
             </Typography>
           </Box>
           <Chip
             label="Online"
             size="small"
             sx={{
-              height: 20,
-              fontSize: "0.675rem",
+              height: 19,
+              fontSize: "0.65rem",
               fontWeight: 600,
               bgcolor: darkMode ? "rgba(22, 163, 74, 0.2)" : "#dcfce7",
               color: darkMode ? "#4ade80" : "#15803d",
-              ml: 1,
-              display: { xs: "none", md: "inline-flex" },
+              ml: 0.5,
+              display: { xs: "none", lg: "inline-flex" },
             }}
           />
         </Box>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.6, sm: 1 }, flexShrink: 0 }}>
           {onOpenVoiceControl && (
-            <Tooltip title="Voice Command Center — Control app features hands-free" placement="bottom">
+            <Tooltip title="Voice Command Center" placement="bottom">
               <Button
                 variant="contained"
                 size="small"
                 onClick={onOpenVoiceControl}
                 startIcon={<VoiceAssistantIcon />}
                 sx={{
-                  borderRadius: "20px",
-                  fontSize: "0.75rem",
+                  borderRadius: "18px",
+                  fontSize: "0.725rem",
                   fontWeight: 650,
-                  py: 0.4,
-                  px: 1.5,
+                  py: { xs: 0.35, sm: 0.4 },
+                  px: { xs: 1, sm: 1.4 },
+                  minWidth: 0,
                   textTransform: "none",
                   background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                   color: "#ffffff",
                   boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                  "& .MuiButton-startIcon": {
+                    mr: { xs: 0, sm: 0.75 },
+                    ml: { xs: 0, sm: -0.25 },
+                  },
                   "&:hover": {
                     background: "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)",
-                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.35)",
                   },
                 }}
               >
-                Voice Control
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                  Voice Control
+                </Box>
               </Button>
             </Tooltip>
           )}
@@ -217,7 +242,7 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
                 border: "1px solid",
                 borderColor: "divider",
                 borderRadius: "8px",
-                p: 0.6,
+                p: { xs: 0.55, sm: 0.6 },
                 "&:hover": { bgcolor: "action.hover" },
               }}
             >
@@ -235,7 +260,7 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
                   border: "1px solid",
                   borderColor: "divider",
                   borderRadius: "8px",
-                  p: 0.6,
+                  p: { xs: 0.55, sm: 0.6 },
                   "&:hover": { bgcolor: "action.hover", color: "#2563eb" },
                 }}
               >
@@ -244,12 +269,12 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
             </Tooltip>
           )}
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 0.75 }}>
             <Avatar
               sx={{
-                width: 28,
-                height: 28,
-                fontSize: "0.75rem",
+                width: 26,
+                height: 26,
+                fontSize: "0.725rem",
                 fontWeight: 600,
                 bgcolor: "#2563eb",
                 color: "#ffffff",
@@ -257,33 +282,56 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
             >
               {userName?.charAt(0)?.toUpperCase() || "U"}
             </Avatar>
-            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: "0.8125rem", display: { xs: "none", sm: "inline" } }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: "0.8rem", display: { xs: "none", md: "inline" } }}>
               {userName}
             </Typography>
           </Box>
 
           {onLogout && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={onLogout}
-              sx={{
-                fontSize: "0.775rem",
-                py: "3px",
-                px: "10px",
-                color: "text.secondary",
-                borderColor: "divider",
-                textTransform: "none",
-                borderRadius: "6px",
-                "&:hover": {
-                  borderColor: "#2563eb",
-                  color: "#2563eb",
-                  bgcolor: "rgba(37, 99, 235, 0.06)",
-                },
-              }}
-            >
-              Reset Session
-            </Button>
+            <>
+              {/* Desktop Reset Button */}
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={onLogout}
+                sx={{
+                  display: { xs: "none", sm: "inline-flex" },
+                  fontSize: "0.75rem",
+                  py: "3px",
+                  px: "8px",
+                  color: "text.secondary",
+                  borderColor: "divider",
+                  textTransform: "none",
+                  borderRadius: "6px",
+                  "&:hover": {
+                    borderColor: "#2563eb",
+                    color: "#2563eb",
+                    bgcolor: "rgba(37, 99, 235, 0.06)",
+                  },
+                }}
+              >
+                Reset Session
+              </Button>
+
+              {/* Mobile Reset Icon Button */}
+              <Tooltip title="Reset Session" placement="bottom">
+                <IconButton
+                  size="small"
+                  onClick={onLogout}
+                  sx={{
+                    display: { xs: "inline-flex", sm: "none" },
+                    color: "text.secondary",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: "8px",
+                    p: 0.55,
+                    "&:hover": { color: "#2563eb", bgcolor: "rgba(37, 99, 235, 0.06)" },
+                  }}
+                >
+                  <ResetIcon />
+                </IconButton>
+              </Tooltip>
+            </>
           )}
         </Box>
       </Toolbar>

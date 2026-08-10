@@ -425,7 +425,12 @@ function PaletteIcon() {
   );
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL !== undefined
+    ? import.meta.env.VITE_API_BASE_URL
+    : import.meta.env.PROD
+    ? ""
+    : "http://localhost:8000";
 
 const getImageUrl = (url) => {
   if (!url) return "";
@@ -613,14 +618,14 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
   };
 
   return (
-    <Box sx={{ display: "flex", gap: 1.25, justifyContent: isUser ? "flex-end" : "flex-start", my: 0.75, textAlign: "left" }}>
+    <Box sx={{ display: "flex", gap: { xs: 0.75, sm: 1.25 }, justifyContent: isUser ? "flex-end" : "flex-start", my: 0.75, textAlign: "left" }}>
       {!isUser && (
         <Avatar
           src={imdLogo}
           alt="MTI Knowledge System"
           sx={{
-            width: 32,
-            height: 32,
+            width: { xs: 28, sm: 32 },
+            height: { xs: 28, sm: 32 },
             mt: 0.25,
             flexShrink: 0,
             border: "1px solid #cbd5e1",
@@ -636,10 +641,10 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
       <Paper
         elevation={0}
         sx={{
-          maxWidth: { xs: "88%", md: "78%" },
-          px: 2,
-          py: 1.5,
-          borderRadius: "10px",
+          maxWidth: { xs: "93%", sm: "85%", md: "78%" },
+          px: { xs: 1.5, sm: 2 },
+          py: { xs: 1.25, sm: 1.5 },
+          borderRadius: { xs: "10px", sm: "12px" },
           bgcolor: isUser ? "#2563eb" : "background.paper",
           color: isUser ? "#ffffff" : "text.primary",
           border: isUser ? "none" : "1px solid",
@@ -647,32 +652,45 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
           boxShadow: isUser ? "none" : "0 1px 3px 0 rgba(15, 23, 42, 0.04)",
           position: "relative",
           textAlign: "left",
+          overflowWrap: "anywhere",
         }}
       >
         {!isUser && (
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.75, pb: 0.5, borderBottom: "1px solid", borderColor: "divider" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, fontSize: "0.725rem", color: "text.primary" }}>
-                MTI Knowledge Assistant
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 0.75,
+              mb: 0.75,
+              pb: 0.5,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.6, flexWrap: "wrap" }}>
+              <Typography variant="caption" sx={{ fontWeight: 650, fontSize: { xs: "0.7rem", sm: "0.725rem" }, color: "text.primary" }}>
+                MTI Assistant
               </Typography>
-              <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.3, px: 0.75, py: 0.1, borderRadius: "4px", bgcolor: "rgba(37, 99, 235, 0.08)", color: "#1d4ed8", fontSize: "0.65rem", fontWeight: 600 }}>
+              <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.3, px: 0.6, py: 0.1, borderRadius: "4px", bgcolor: "rgba(37, 99, 235, 0.08)", color: "#1d4ed8", fontSize: "0.625rem", fontWeight: 600 }}>
                 <VerifiedBadgeIcon />
                 Official Context
               </Box>
             </Box>
 
             {!isLoading && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.25, sm: 0.4 }, flexWrap: "wrap" }}>
                 <Tooltip title={isTranslating ? "Translating to Hindi..." : showHindi ? "Switch to English" : "Translate response to Hindi (हिंदी)"} placement="top">
                   <Button
                     size="small"
                     onClick={handleToggleHindiTranslation}
                     disabled={isTranslating}
-                    startIcon={isTranslating ? <CircularProgress size={12} color="inherit" /> : <TranslateIcon />}
+                    startIcon={isTranslating ? <CircularProgress size={11} color="inherit" /> : <TranslateIcon />}
                     sx={{
                       py: 0.1,
-                      px: 0.75,
-                      fontSize: "0.6875rem",
+                      px: 0.65,
+                      fontSize: "0.675rem",
                       fontWeight: 600,
                       textTransform: "none",
                       borderRadius: "4px",
@@ -683,7 +701,7 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                       },
                     }}
                   >
-                    {isTranslating ? "Translating..." : showHindi ? "English" : "हिंदी (Hindi)"}
+                    {isTranslating ? "Translating..." : showHindi ? "English" : "हिंदी"}
                   </Button>
                 </Tooltip>
 
@@ -693,8 +711,8 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                       size="small"
                       onClick={handleToggleSpeech}
                       sx={{
-                        opacity: isSpeaking ? 1 : 0.6,
-                        p: 0.25,
+                        opacity: isSpeaking ? 1 : 0.65,
+                        p: { xs: 0.35, sm: 0.4 },
                         color: isSpeaking ? "#2563eb" : "text.secondary",
                         bgcolor: isSpeaking ? "rgba(37, 99, 235, 0.1)" : "transparent",
                         "&:hover": { opacity: 1, bgcolor: "#f1f5f9" },
@@ -712,8 +730,8 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                         size="small"
                         onClick={handleCopy}
                         sx={{
-                          opacity: 0.6,
-                          p: 0.25,
+                          opacity: 0.65,
+                          p: { xs: 0.35, sm: 0.4 },
                           color: "text.secondary",
                           "&:hover": { opacity: 1, bgcolor: "#f1f5f9" },
                         }}
@@ -727,8 +745,8 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                         size="small"
                         onClick={handleDownloadPdf}
                         sx={{
-                          opacity: 0.6,
-                          p: 0.25,
+                          opacity: 0.65,
+                          p: { xs: 0.35, sm: 0.4 },
                           color: "text.secondary",
                           "&:hover": { opacity: 1, bgcolor: "#f1f5f9" },
                         }}
@@ -744,12 +762,12 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                         disabled={diagramLoading}
                         sx={{
                           opacity: 0.8,
-                          p: 0.25,
+                          p: { xs: 0.35, sm: 0.4 },
                           color: "#2563eb",
                           "&:hover": { opacity: 1, bgcolor: "rgba(37, 99, 235, 0.1)" },
                         }}
                       >
-                        {diagramLoading ? <CircularProgress size={14} color="primary" /> : <PaletteIcon />}
+                        {diagramLoading ? <CircularProgress size={13} color="primary" /> : <PaletteIcon />}
                       </IconButton>
                     </Tooltip>
 
@@ -759,8 +777,8 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                           size="small"
                           onClick={() => onDelete(historyId, messageId)}
                           sx={{
-                            opacity: 0.6,
-                            p: 0.25,
+                            opacity: 0.65,
+                            p: { xs: 0.35, sm: 0.4 },
                             color: "text.secondary",
                             "&:hover": { opacity: 1, color: "#ef4444", bgcolor: "#fef2f2" },
                           }}
@@ -809,7 +827,7 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                 "& .MuiInputBase-input": { color: "#ffffff" },
               }}
             />
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: "space-between" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: "space-between", flexWrap: "wrap" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                 <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.675rem", fontWeight: 600 }}>
                   Depth:
@@ -846,7 +864,7 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                     color: "rgba(255,255,255,0.8)",
                     textTransform: "none",
                     borderRadius: "6px",
-                    px: 1.5,
+                    px: 1.25,
                     minWidth: 0,
                     "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
                   }}
@@ -863,7 +881,7 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                     fontWeight: 600,
                     textTransform: "none",
                     borderRadius: "6px",
-                    px: 1.5,
+                    px: 1.25,
                     minWidth: 0,
                     bgcolor: "#ffffff",
                     color: "#2563eb",
@@ -950,8 +968,8 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                   key={idx}
                   onClick={() => setPreviewModalImg({ url: getImageUrl(img.url), caption: img.caption || "Source Document Figure" })}
                   sx={{
-                    width: 120,
-                    height: 85,
+                    width: { xs: 95, sm: 120 },
+                    height: { xs: 70, sm: 85 },
                     borderRadius: "6px",
                     overflow: "hidden",
                     border: "1px solid",
@@ -1002,7 +1020,7 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                     onClick={() => setPreviewModalImg({ url: getImageUrl(diag.url), caption: diag.caption })}
                     sx={{
                       width: "100%",
-                      maxHeight: 260,
+                      maxHeight: { xs: 200, sm: 260 },
                       objectFit: "contain",
                       borderRadius: "6px",
                       bgcolor: "#ffffff",
@@ -1065,8 +1083,8 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
           sx={{
             bgcolor: "#64748b",
             color: "#ffffff",
-            width: 32,
-            height: 32,
+            width: { xs: 28, sm: 32 },
+            height: { xs: 28, sm: 32 },
             mt: 0.25,
             flexShrink: 0,
           }}
@@ -1076,10 +1094,10 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
       )}
 
       <Dialog open={Boolean(previewModalImg)} onClose={() => setPreviewModalImg(null)} maxWidth="md" fullWidth>
-        <DialogContent sx={{ p: 2, bgcolor: "#0f172a", textAlign: "center" }}>
+        <DialogContent sx={{ p: { xs: 1.5, sm: 2 }, bgcolor: "#0f172a", textAlign: "center" }}>
           {previewModalImg && (
             <Box>
-              <Typography variant="subtitle2" sx={{ color: "#ffffff", mb: 1.5, fontWeight: 600 }}>
+              <Typography variant="subtitle2" sx={{ color: "#ffffff", mb: 1.5, fontWeight: 600, fontSize: { xs: "0.8rem", sm: "0.9rem" } }}>
                 {previewModalImg.caption}
               </Typography>
               <Box
