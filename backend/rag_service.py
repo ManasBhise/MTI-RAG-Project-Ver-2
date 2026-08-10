@@ -4,10 +4,14 @@ import os
 import sys
 from pathlib import Path
 from typing import Any
+from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
 	sys.path.insert(0, str(PROJECT_ROOT))
+
+load_dotenv(PROJECT_ROOT / "backend" / ".env")
+load_dotenv(PROJECT_ROOT / ".env")
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +72,13 @@ def _is_meteorological_query(question: str) -> bool:
 		meteorology_exceptions = [
 			"weather", "climate", "meteorol", "atmosphere", "atmospheric", "forecast", "monsoon",
 			"cyclone", "radar", "satellite", "wind", "temperature", "pressure", "humidity", "rain",
-			"precipitation", "cloud", "nwp", "wrf", "mti", "imd", "wmo", "sounding", "radiosonde"
+			"precipitation", "cloud", "nwp", "wrf", "mti", "imd", "wmo", "sounding", "radiosonde",
+			"aviation", "aeronautic", "flight", "aircraft", "aerodrome", "airport", "pilot",
+			"metar", "taf", "sigmet", "turbulence", "wind shear", "icing", "visibility", "rvr",
+			"altimeter", "barometer", "anemometer", "hygrometer", "thermometer", "tephigram",
+			"troposphere", "stratosphere", "mesosphere", "boundary layer", "inversion", "lapse rate",
+			"marine", "ocean", "agro", "hydro", "flood", "drought", "lightning", "thunderstorm",
+			"coriolis", "vorticity", "geostrophic", "advection", "convection", "albedo", "radiation"
 		]
 		for trigger in non_domain_triggers:
 			if trigger in q_lower:
@@ -85,7 +95,7 @@ def _fallback_llm_answer(question: str, user_profile: dict | None = None) -> dic
 	"""Fallback LLM answer generator when full local vector store pipeline is unavailable."""
 	if not _is_meteorological_query(question):
 		return {
-			"answer": "I am specialized exclusively in MTI meteorological training literature, atmospheric science, and weather forecasting. I cannot assist with non-meteorological or general topics.",
+			"answer": "I am specialized in MTI meteorological training literature, atmospheric science, and weather forecasting. I cannot assist with non-meteorological or general topics.",
 			"sources": [],
 			"images": [],
 		}
@@ -100,17 +110,16 @@ def _fallback_llm_answer(question: str, user_profile: dict | None = None) -> dic
 		groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 		system_prompt = (
-			"You are the official MTI Knowledge Assistant for the Meteorological Training Institute (India Meteorological Department).\n"
-			"Your scope is strictly focused on meteorology, atmospheric science, weather forecasting, numerical weather prediction (NWP), and MTI training literature.\n\n"
-			"STRICT OUT-OF-DOMAIN & REFUSAL RULES:\n"
-			"1. You are strictly specialized in meteorology and IMD training materials.\n"
-			"2. If the user asks ANY non-meteorological question (general programming/addition, tech company jobs/internships, history, politics, sports, general trivia, medical advice, cooking, etc.):\n"
-			"   - Refuse immediately and concisely: \"I am specialized exclusively in MTI meteorological training literature, atmospheric science, and weather forecasting. I cannot assist with non-meteorological or general topics.\"\n"
-			"   - Do NOT provide code or tips for non-meteorological requests.\n"
-			"   - Do NOT generate multi-section headers for refused questions.\n"
-			"   - Do NOT attempt to contort non-meteorological questions to relate to meteorology.\n\n"
-			"FOR VALID METEOROLOGICAL QUESTIONS ONLY:\n"
-			"Organize your answer into clear sections with bold headers (e.g. ### 1. Overview & Definition, ### 2. Physical & Meteorological Principles, ### 3. NWP & Operational Applications, ### 4. Key Takeaways)."
+			"You are the official MTI Knowledge Assistant for the Meteorological Training Institute (India Meteorological Department - IMD).\n"
+			"You specialize in meteorological training literature, atmospheric physics, weather forecasting, aeronautical/aviation meteorology, numerical weather prediction (NWP), radar/satellite remote sensing, and atmospheric sciences.\n\n"
+			"SCOPE & DOMAIN GUIDELINES:\n"
+			"1. Answer questions thoroughly regarding meteorology, atmospheric science, climate, weather forecasting, aviation & aeronautical weather (e.g. METAR, TAF, flight hazards, wind shear, turbulence, icing, aerodrome operations), satellite & radar meteorology, agrometeorology, marine/cyclone forecasting, and official MTI/IMD training courseware.\n"
+			"2. When asked about aviation, aerospace, instruments, flight conditions, atmospheric layers, or physical phenomena, provide a rich, structured, and informative answer highlighting its principles and its critical connection to aeronautical meteorology and flight safety.\n"
+			"3. Only if the user asks a completely unrelated request (such as writing generic programming scripts/addition calculators, Bollywood/pop culture trivia, political elections/figures, sports match scores, stock trading, cooking recipes, medical diagnoses, or tech job interview tips):\n"
+			"   - Politely decline with: \"I am specialized in MTI meteorological training literature, atmospheric science, and weather forecasting. I cannot assist with non-meteorological or general topics.\"\n"
+			"   - Do NOT provide code or tips for non-meteorological requests.\n\n"
+			"FOR VALID DOMAIN QUESTIONS:\n"
+			"Organize your answer into clear sections with bold headers (e.g. ### 1. Overview & Definition, ### 2. Physical & Meteorological Principles, ### 3. Aviation & Operational Applications, ### 4. Key Takeaways)."
 		)
 
 		messages = [

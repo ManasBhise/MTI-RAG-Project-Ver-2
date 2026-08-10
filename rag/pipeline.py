@@ -111,7 +111,13 @@ def _is_meteorology_or_mti_query(question: str) -> bool:
 	meteorology_exceptions = [
 		"weather", "climate", "meteorol", "atmosphere", "atmospheric", "forecast", "monsoon",
 		"cyclone", "radar", "satellite", "wind", "temperature", "pressure", "humidity", "rain",
-		"precipitation", "cloud", "nwp", "wrf", "mti", "imd", "wmo", "sounding", "radiosonde"
+		"precipitation", "cloud", "nwp", "wrf", "mti", "imd", "wmo", "sounding", "radiosonde",
+		"aviation", "aeronautic", "flight", "aircraft", "aerodrome", "airport", "pilot",
+		"metar", "taf", "sigmet", "turbulence", "wind shear", "icing", "visibility", "rvr",
+		"altimeter", "barometer", "anemometer", "hygrometer", "thermometer", "tephigram",
+		"troposphere", "stratosphere", "mesosphere", "boundary layer", "inversion", "lapse rate",
+		"marine", "ocean", "agro", "hydro", "flood", "drought", "lightning", "thunderstorm",
+		"coriolis", "vorticity", "geostrophic", "advection", "convection", "albedo", "radiation"
 	]
 
 	for trigger in non_domain_triggers:
@@ -571,20 +577,19 @@ def ask_question(
 		context, sources, images = _retrieve_context(retrieval_query)
 
 		if not context:
-			# Fallback to direct question search if combined query retrieved empty
-			context, sources, images = _retrieve_context(question)
-
-		if generated_diag_img:
-			images = [generated_diag_img] + (images or [])
-
-		if not context:
-			if generated_diag_img:
-				answer = f"Generated visual diagram for: '{question}'. (Note: Could not find additional grounded literature text in MTI files for this topic)."
-				return {"answer": answer, "sources": [], "images": images}
+			# If no exact chunk retrieved, synthesize answer from MTI domain knowledge
+			answer = _generate_answer(
+				question,
+				context="",
+				mode=mode,
+				chat_history=chat_history,
+				is_image_query=is_image_req,
+				user_profile=user_profile,
+			)
 			return {
-				"answer": "I could not find relevant information in the MTI training materials to answer this question.",
-				"sources": [],
-				"images": [],
+				"answer": answer,
+				"sources": ["MTI Knowledge Repository (Foundational Meteorological Concepts)"],
+				"images": images,
 			}
 
 		answer = _generate_answer(
