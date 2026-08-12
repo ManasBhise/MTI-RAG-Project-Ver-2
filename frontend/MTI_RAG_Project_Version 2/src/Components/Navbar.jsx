@@ -1,15 +1,6 @@
 import { AppBar, Avatar, Box, Button, Chip, IconButton, Toolbar, Tooltip, Typography } from "@mui/material";
 import imdLogo from "../assets/imd_logo.png";
-
-function MenuIcon({ size = 19, isSidebarOpen = false }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="5" strokeWidth="1.8" />
-      <line x1="9" y1="3" x2="9" y2="21" strokeWidth="1.8" />
-      <path d={isSidebarOpen ? "M15 9l-3 3 3 3" : "M12 9l3 3-3 3"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+import { useThemeMode } from "../App";
 
 function LogoIcon({ size = { xs: 34, sm: 42 } }) {
   return (
@@ -28,8 +19,6 @@ function LogoIcon({ size = { xs: 34, sm: 42 } }) {
     />
   );
 }
-
-import { useThemeMode } from "../App";
 
 function MoonIcon() {
   return (
@@ -65,11 +54,20 @@ function DownloadIcon() {
   );
 }
 
-function HistoryIcon() {
+function SettingsIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"></circle>
-      <polyline points="12 6 12 12 16 14"></polyline>
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     </svg>
   );
 }
@@ -85,16 +83,7 @@ function VoiceAssistantIcon() {
   );
 }
 
-function ResetIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-      <path d="M3 3v5h5"></path>
-    </svg>
-  );
-}
-
-function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLogout, onOpenHistory, onDownloadConversation, onOpenVoiceControl }) {
+function Navbar({ userName = "Meteorologist", onClearChat, onOpenSettings, onDownloadConversation, onOpenVoiceControl }) {
   const { darkMode, toggleDarkMode } = useThemeMode();
 
   return (
@@ -106,56 +95,31 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
         color: "text.primary",
         borderBottom: "1px solid",
         borderColor: "divider",
-        zIndex: (theme) => theme.zIndex.drawer - 1,
       }}
     >
-      <Toolbar sx={{ minHeight: { xs: "52px !important", sm: "56px !important" }, px: { xs: 1.25, sm: 2, md: 3 }, gap: { xs: 0.75, sm: 1.25 } }}>
-        <Tooltip title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"} placement="bottom">
-          <IconButton
-            onClick={onToggleSidebar}
-            edge="start"
-            size="small"
-            sx={{
-              display: { xs: "inline-flex", md: isSidebarOpen ? "none" : "inline-flex" },
-              color: "text.secondary",
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: "8px",
-              p: { xs: 0.6, sm: 0.75 },
-              transition: "all 0.2s ease-in-out",
-              "&:hover": {
-                bgcolor: "rgba(37, 99, 235, 0.08)",
-                color: "#2563eb",
-                borderColor: "rgba(37, 99, 235, 0.3)",
-              },
-            }}
-            aria-label="toggle sidebar"
-          >
-            <MenuIcon size={18} isSidebarOpen={isSidebarOpen} />
-          </IconButton>
-        </Tooltip>
-
+      <Toolbar sx={{ minHeight: { xs: "54px !important", sm: "60px !important" }, px: { xs: 1.5, sm: 2.5, md: 4 }, gap: { xs: 1, sm: 1.5 } }}>
+        {/* Brand & Logo */}
         <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 }, flexGrow: 1, minWidth: 0 }}>
           <Box
             sx={{
-              height: { xs: 34, sm: 42 },
+              height: { xs: 36, sm: 44 },
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
             }}
           >
-            <LogoIcon size={{ xs: 34, sm: 42 }} />
+            <LogoIcon size={{ xs: 36, sm: 44 }} />
           </Box>
           <Box sx={{ textAlign: "left", minWidth: 0 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
               <Typography
                 variant="h6"
                 component="h1"
                 noWrap
                 sx={{
-                  fontWeight: 650,
-                  fontSize: { xs: "0.835rem", sm: "0.925rem" },
+                  fontWeight: 700,
+                  fontSize: { xs: "0.9rem", sm: "1rem" },
                   color: "text.primary",
                   lineHeight: 1.2,
                 }}
@@ -166,8 +130,8 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
                 label="BETA"
                 size="small"
                 sx={{
-                  height: 16,
-                  fontSize: "0.585rem",
+                  height: 17,
+                  fontSize: "0.6rem",
                   fontWeight: 700,
                   bgcolor: darkMode ? "rgba(37, 99, 235, 0.2)" : "#eff6ff",
                   color: "#2563eb",
@@ -178,8 +142,8 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
                 }}
               />
             </Box>
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: "0.685rem", display: { xs: "none", sm: "block" }, lineHeight: 1.2 }}>
-              Meteorological Training Institute • IMD
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: "0.7rem", display: { xs: "none", sm: "block" }, lineHeight: 1.2 }}>
+              Meteorological Training Institute • India Meteorological Department (IMD)
             </Typography>
           </Box>
           <Chip
@@ -192,11 +156,12 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
               bgcolor: darkMode ? "rgba(22, 163, 74, 0.2)" : "#dcfce7",
               color: darkMode ? "#4ade80" : "#15803d",
               ml: 0.5,
-              display: { xs: "none", lg: "inline-flex" },
+              display: { xs: "none", md: "inline-flex" },
             }}
           />
         </Box>
 
+        {/* Toolbar Actions */}
         <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.6, sm: 1 }, flexShrink: 0 }}>
           {onOpenVoiceControl && (
             <Tooltip title="Voice Command Center" placement="bottom">
@@ -207,10 +172,10 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
                 startIcon={<VoiceAssistantIcon />}
                 sx={{
                   borderRadius: "18px",
-                  fontSize: "0.725rem",
+                  fontSize: "0.75rem",
                   fontWeight: 650,
-                  py: { xs: 0.35, sm: 0.4 },
-                  px: { xs: 1, sm: 1.4 },
+                  py: { xs: 0.4, sm: 0.45 },
+                  px: { xs: 1.1, sm: 1.5 },
                   minWidth: 0,
                   textTransform: "none",
                   background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
@@ -232,23 +197,6 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
             </Tooltip>
           )}
 
-          <Tooltip title={darkMode ? "Switch to Light mode" : "Switch to Dark mode"} placement="bottom">
-            <IconButton
-              onClick={toggleDarkMode}
-              size="small"
-              sx={{
-                color: darkMode ? "#fbbf24" : "text.secondary",
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: "8px",
-                p: { xs: 0.55, sm: 0.6 },
-                "&:hover": { bgcolor: "action.hover" },
-              }}
-            >
-              {darkMode ? <SunIcon /> : <MoonIcon />}
-            </IconButton>
-          </Tooltip>
-
           {onDownloadConversation && (
             <Tooltip title="Export conversation as PDF" placement="bottom">
               <IconButton
@@ -259,7 +207,7 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
                   border: "1px solid",
                   borderColor: "divider",
                   borderRadius: "8px",
-                  p: { xs: 0.55, sm: 0.6 },
+                  p: { xs: 0.6, sm: 0.65 },
                   "&:hover": { bgcolor: "action.hover", color: "#2563eb" },
                 }}
               >
@@ -268,70 +216,94 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
             </Tooltip>
           )}
 
-          <Box sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 0.75 }}>
+          <Tooltip title={darkMode ? "Switch to Light mode" : "Switch to Dark mode"} placement="bottom">
+            <IconButton
+              onClick={toggleDarkMode}
+              size="small"
+              sx={{
+                color: darkMode ? "#fbbf24" : "text.secondary",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: "8px",
+                p: { xs: 0.6, sm: 0.65 },
+                "&:hover": { bgcolor: "action.hover" },
+              }}
+            >
+              {darkMode ? <SunIcon /> : <MoonIcon />}
+            </IconButton>
+          </Tooltip>
+
+          {onOpenSettings && (
+            <Tooltip title="Settings & Personalization" placement="bottom">
+              <IconButton
+                onClick={onOpenSettings}
+                size="small"
+                sx={{
+                  color: "text.secondary",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: "8px",
+                  p: { xs: 0.6, sm: 0.65 },
+                  "&:hover": { bgcolor: "action.hover", color: "#2563eb" },
+                }}
+              >
+                <SettingsIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {onClearChat && (
+            <Tooltip title="Clear Active Chat" placement="bottom">
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                onClick={onClearChat}
+                startIcon={<TrashIcon />}
+                sx={{
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  py: "4px",
+                  px: { xs: "8px", sm: "12px" },
+                  borderColor: "rgba(239, 68, 68, 0.3)",
+                  color: "#ef4444",
+                  textTransform: "none",
+                  borderRadius: "8px",
+                  minWidth: 0,
+                  "& .MuiButton-startIcon": {
+                    mr: { xs: 0, sm: 0.5 },
+                  },
+                  "&:hover": {
+                    borderColor: "#ef4444",
+                    color: "#ef4444",
+                    bgcolor: "rgba(239, 68, 68, 0.08)",
+                  },
+                }}
+              >
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                  Clear Chat
+                </Box>
+              </Button>
+            </Tooltip>
+          )}
+
+          <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 0.75, pl: 0.5 }}>
             <Avatar
               sx={{
-                width: 26,
-                height: 26,
-                fontSize: "0.725rem",
+                width: 28,
+                height: 28,
+                fontSize: "0.75rem",
                 fontWeight: 600,
                 bgcolor: "#2563eb",
                 color: "#ffffff",
               }}
             >
-              {userName?.charAt(0)?.toUpperCase() || "U"}
+              {userName?.charAt(0)?.toUpperCase() || "M"}
             </Avatar>
-            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: "0.8rem", display: { xs: "none", md: "inline" } }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: "0.8125rem" }}>
               {userName}
             </Typography>
           </Box>
-
-          {onLogout && (
-            <>
-              {/* Desktop Reset Button */}
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={onLogout}
-                sx={{
-                  display: { xs: "none", sm: "inline-flex" },
-                  fontSize: "0.75rem",
-                  py: "3px",
-                  px: "8px",
-                  color: "text.secondary",
-                  borderColor: "divider",
-                  textTransform: "none",
-                  borderRadius: "6px",
-                  "&:hover": {
-                    borderColor: "#2563eb",
-                    color: "#2563eb",
-                    bgcolor: "rgba(37, 99, 235, 0.06)",
-                  },
-                }}
-              >
-                Reset Session
-              </Button>
-
-              {/* Mobile Reset Icon Button */}
-              <Tooltip title="Reset Session" placement="bottom">
-                <IconButton
-                  size="small"
-                  onClick={onLogout}
-                  sx={{
-                    display: { xs: "inline-flex", sm: "none" },
-                    color: "text.secondary",
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: "8px",
-                    p: 0.55,
-                    "&:hover": { color: "#2563eb", bgcolor: "rgba(37, 99, 235, 0.06)" },
-                  }}
-                >
-                  <ResetIcon />
-                </IconButton>
-              </Tooltip>
-            </>
-          )}
         </Box>
       </Toolbar>
     </AppBar>

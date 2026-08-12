@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Box, Drawer, Stack, Typography } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Box, Card, CardActionArea, CardContent, Chip, Grid, Stack, Typography } from "@mui/material";
 import Navbar from "../Components/Navbar";
-import Sidebar from "../Components/Sidebar";
 import Message from "../Components/Message";
 import ChatInput from "../Components/ChatInput";
 import SettingsModal from "../Components/SettingsModal";
@@ -16,12 +15,49 @@ import {
 } from "../services/api";
 import { formatErrorMessage } from "../utils/formatError";
 
+const QUICK_STARTERS = [
+  {
+    category: "Aviation Weather",
+    icon: "🛫",
+    title: "METAR & TAF Codes",
+    prompt: "Explain METAR and TAF meteorological codes and aviation weather hazards.",
+  },
+  {
+    category: "Atmospheric Science",
+    icon: "🌡️",
+    title: "Adiabatic Lapse Rates",
+    prompt: "What is Dry Adiabatic Lapse Rate (DALR) and Saturated Adiabatic Lapse Rate?",
+  },
+  {
+    category: "Radar & Satellite",
+    icon: "🛰️",
+    title: "Doppler Radar Tracking",
+    prompt: "How does Doppler Weather Radar track severe convective storms and cyclones?",
+  },
+  {
+    category: "Tropical Weather",
+    icon: "🌀",
+    title: "Tropical Cyclones",
+    prompt: "Explain the formation and structure of Tropical Cyclones in the North Indian Ocean.",
+  },
+  {
+    category: "NWP & Forecasting",
+    icon: "📊",
+    title: "Numerical Models (NWP)",
+    prompt: "What is Numerical Weather Prediction (NWP) and how do atmospheric models operate?",
+  },
+  {
+    category: "Marine Science",
+    icon: "🌊",
+    title: "Oceanography & SST",
+    prompt: "What are ocean currents, SST, and their impact on Indian monsoon patterns?",
+  },
+];
+
 function Chat() {
   const messagesEndRef = useRef(null);
 
   const { toggleDarkMode } = useThemeMode();
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [voiceControlOpen, setVoiceControlOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -329,7 +365,6 @@ function Chat() {
     if (msgIndex === -1) return;
 
     const previousMessages = messages.slice(0, msgIndex);
-
     const updatedUserMessage = {
       id: Date.now(),
       role: "user",
@@ -376,6 +411,8 @@ function Chat() {
     }
   };
 
+  const isInitialState = messages.length <= 1;
+
   return (
     <Box
       sx={{
@@ -384,160 +421,143 @@ function Chat() {
         minHeight: "100dvh",
         maxHeight: "100dvh",
         display: "flex",
+        flexDirection: "column",
         bgcolor: "background.default",
         overflow: "hidden",
         textAlign: "left",
       }}
     >
-      {/* Desktop Sidebar */}
-      <Box
-        sx={{
-          display: { xs: "none", md: "block" },
-          height: "100%",
-          width: desktopSidebarOpen ? 260 : 0,
-          minWidth: desktopSidebarOpen ? 260 : 0,
-          transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-          overflow: "hidden",
-        }}
-      >
-        <Sidebar
-          onClearChat={handleClearChat}
-          onSelectPrompt={handleSend}
-          responseMode={responseMode}
-          onSetResponseMode={setResponseMode}
-          onOpenSettings={() => setSettingsOpen(true)}
-          onToggleCollapse={() => setDesktopSidebarOpen(false)}
-        />
-      </Box>
+      {/* Top Navigation Bar */}
+      <Navbar
+        userName={user?.name || "Meteorologist"}
+        onClearChat={handleClearChat}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onDownloadConversation={handleDownloadConversation}
+        onOpenVoiceControl={() => setVoiceControlOpen(true)}
+      />
 
-      {/* Mobile Drawer Sidebar */}
-      <Drawer
-        open={mobileSidebarOpen}
-        onClose={() => setMobileSidebarOpen(false)}
-        sx={{ display: { xs: "block", md: "none" } }}
-      >
-        <Sidebar
-          onClearChat={() => {
-            setMobileSidebarOpen(false);
-            handleClearChat();
-          }}
-          onSelectPrompt={(prompt) => {
-            setMobileSidebarOpen(false);
-            handleSend(prompt);
-          }}
-          responseMode={responseMode}
-          onSetResponseMode={setResponseMode}
-          onOpenSettings={() => {
-            setMobileSidebarOpen(false);
-            setSettingsOpen(true);
-          }}
-        />
-      </Drawer>
+      {/* Main Chat Scroll Area */}
+      <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 1.5, sm: 2.5, md: 3.5 }, WebkitOverflowScrolling: "touch" }}>
+        <Box sx={{ maxWidth: "980px", mx: "auto", width: "100%" }}>
+          {voiceActionToast && (
+            <Alert
+              severity="info"
+              sx={{ mb: 2.5, borderRadius: "10px", fontSize: "0.8375rem", bgcolor: "rgba(37, 99, 235, 0.12)", color: "#1d4ed8", fontWeight: 600, border: "1px solid #bfdbfe" }}
+              onClose={() => setVoiceActionToast("")}
+            >
+              {voiceActionToast}
+            </Alert>
+          )}
 
-      {/* Main Chat Viewport */}
-      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-        <Navbar
-          onToggleSidebar={() => {
-            if (window.innerWidth < 900) {
-              setMobileSidebarOpen((prev) => !prev);
-            } else {
-              setDesktopSidebarOpen((prev) => !prev);
-            }
-          }}
-          isSidebarOpen={desktopSidebarOpen}
-          userName={user?.name || "Meteorologist"}
-          onLogout={handleResetSession}
-          onDownloadConversation={handleDownloadConversation}
-          onOpenVoiceControl={() => setVoiceControlOpen(true)}
-        />
+          {error && (
+            <Alert severity="error" sx={{ mb: 2.5, borderRadius: "8px", fontSize: "0.8125rem" }} onClose={() => setError("")}>
+              {error}
+            </Alert>
+          )}
 
-        <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 1.25, sm: 2, md: 3 }, WebkitOverflowScrolling: "touch" }}>
-          <Box sx={{ maxWidth: "960px", mx: "auto", width: "100%" }}>
-            {voiceActionToast && (
-              <Alert
-                severity="info"
-                sx={{ mb: 2, borderRadius: "10px", fontSize: "0.8375rem", bgcolor: "rgba(37, 99, 235, 0.12)", color: "#1d4ed8", fontWeight: 600, border: "1px solid #bfdbfe" }}
-                onClose={() => setVoiceActionToast("")}
-              >
-                {voiceActionToast}
-              </Alert>
-            )}
-
-            {error && (
-              <Alert severity="error" sx={{ mb: 2, borderRadius: "8px", fontSize: "0.8125rem" }} onClose={() => setError("")}>
-                {error}
-              </Alert>
-            )}
-
-            {messages.length === 0 ? (
-              <Box sx={{ py: 6, px: 2, textAlign: "left" }}>
-                <Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600, color: "text.primary", mb: 0.5 }}>
-                  Welcome to MTI Knowledge Assistant
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8375rem" }}>
-                  Ask any question regarding MTI meteorological training documentation, weather observation guidelines, and institute courseware.
-                </Typography>
-              </Box>
-            ) : (
-              <Stack spacing={{ xs: 1.5, sm: 2 }}>
-                {messages.map((message, index) => {
-                  let userQuestion = "";
-                  if (message.role === "assistant") {
-                    for (let i = index - 1; i >= 0; i--) {
-                      if (messages[i].role === "user") {
-                        userQuestion = messages[i].text;
-                        break;
-                      }
-                    }
+          <Stack spacing={{ xs: 2, sm: 2.5 }}>
+            {messages.map((message, index) => {
+              let userQuestion = "";
+              if (message.role === "assistant") {
+                for (let i = index - 1; i >= 0; i--) {
+                  if (messages[i].role === "user") {
+                    userQuestion = messages[i].text;
+                    break;
                   }
+                }
+              }
 
-                  return (
-                    <div key={message.id} id={message.id}>
-                      <Message
-                        role={message.role}
-                        text={message.text}
-                        references={message.references}
-                        images={message.images}
-                        timestamp={message.timestamp}
-                        messageId={message.id}
-                        historyId={message.historyId}
-                        userQuestion={userQuestion}
-                        onEdit={message.role === "user" ? handleEditMessage : undefined}
-                        onDelete={handleDeleteMessagePair}
-                      />
-                    </div>
-                  );
-                })}
-
-                {loading && (
+              return (
+                <div key={message.id} id={message.id}>
                   <Message
-                    role="assistant"
-                    isLoading={true}
+                    role={message.role}
+                    text={message.text}
+                    references={message.references}
+                    images={message.images}
+                    timestamp={message.timestamp}
+                    messageId={message.id}
+                    historyId={message.historyId}
+                    userQuestion={userQuestion}
+                    onEdit={message.role === "user" ? handleEditMessage : undefined}
+                    onDelete={handleDeleteMessagePair}
                   />
-                )}
-                <div ref={messagesEndRef} />
-              </Stack>
-            )}
-          </Box>
-        </Box>
+                </div>
+              );
+            })}
 
-        <Box sx={{ maxWidth: "1350px", mx: "auto", width: "100%", px: { xs: 0, sm: 1, md: 2 } }}>
-          <ChatInput
-            onSend={handleSend}
-            disabled={loading}
-            mode={responseMode}
-            onModeChange={setResponseMode}
-            onVoiceCommand={checkAndExecuteVoiceCommand}
-          />
+            {/* Quick Knowledge Starters on Welcome View */}
+            {isInitialState && (
+              <Box sx={{ pt: 1, pb: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", fontSize: "0.725rem", display: "block", mb: 1.5 }}>
+                  Suggested Meteorological Topics
+                </Typography>
+                <Grid container spacing={1.5}>
+                  {QUICK_STARTERS.map((item, idx) => (
+                    <Grid item xs={12} sm={6} md={4} key={idx}>
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          borderRadius: "10px",
+                          borderColor: "divider",
+                          bgcolor: "background.paper",
+                          transition: "all 0.2s ease-in-out",
+                          "&:hover": {
+                            borderColor: "primary.main",
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 4px 12px rgba(37, 99, 235, 0.12)",
+                          },
+                        }}
+                      >
+                        <CardActionArea onClick={() => handleSend(item.prompt)} sx={{ p: 1.5, height: "100%" }}>
+                          <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                              <Typography sx={{ fontSize: "1.1rem" }}>{item.icon}</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.835rem", color: "text.primary" }}>
+                                {item.title}
+                              </Typography>
+                            </Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.725rem", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                              {item.prompt}
+                            </Typography>
+                          </CardContent>
+                        </CardActionArea>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+
+            {loading && (
+              <Message
+                role="assistant"
+                isLoading={true}
+              />
+            )}
+            <div ref={messagesEndRef} />
+          </Stack>
         </Box>
       </Box>
 
+      {/* Bottom Chat Input Dock */}
+      <Box sx={{ maxWidth: "1050px", mx: "auto", width: "100%", px: { xs: 1, sm: 2, md: 3 }, pb: { xs: 1, sm: 1.5 } }}>
+        <ChatInput
+          onSend={handleSend}
+          disabled={loading}
+          mode={responseMode}
+          onModeChange={setResponseMode}
+          onVoiceCommand={checkAndExecuteVoiceCommand}
+        />
+      </Box>
+
+      {/* Settings Modal */}
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onDeleteAllHistory={handleClearChat}
       />
 
+      {/* Voice Control Modal */}
       <VoiceControlModal
         open={voiceControlOpen}
         onClose={() => setVoiceControlOpen(false)}
