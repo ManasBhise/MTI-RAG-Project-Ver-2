@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "cd \"frontend/MTI_RAG_Project_Version 2\" && npm install && npm run build"
+    "build": "npm --prefix \"frontend/MTI_RAG_Project_Version 2\" install && npm --prefix \"frontend/MTI_RAG_Project_Version 2\" run build"
   }
 }
