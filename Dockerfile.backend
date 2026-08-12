@@ -24,7 +24,7 @@ WORKDIR /app
 RUN pip install --no-cache-dir --upgrade pip
 
 # Copy and install python dependencies
-COPY requirements.txt .
+COPY backend/requirements.txt ./requirements.txt
 
 # Install CPU-optimized PyTorch first for fast downloads & lightweight image, then install remaining dependencies
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
