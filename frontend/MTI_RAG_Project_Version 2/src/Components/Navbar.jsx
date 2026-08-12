@@ -71,17 +71,6 @@ function DownloadIcon() {
   );
 }
 
-function UploadPdfIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-      <polyline points="14 2 14 8 20 8"></polyline>
-      <polyline points="9 15 12 12 15 15"></polyline>
-      <line x1="12" y1="12" x2="12" y2="18"></line>
-    </svg>
-  );
-}
-
 function TrashIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -106,7 +95,6 @@ function Navbar({
   userName = "Meteorologist",
   onClearChat,
   onOpenSettings,
-  onUploadPdf,
   onDownloadConversation,
   onOpenVoiceControl,
 }) {
@@ -205,40 +193,6 @@ function Navbar({
 
         {/* Toolbar Actions */}
         <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 0.75 }, flexShrink: 0 }}>
-          {onUploadPdf && (
-            <Tooltip title="Upload new PDF manual (Requires authentication)" placement="bottom">
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={onUploadPdf}
-                startIcon={<UploadPdfIcon />}
-                sx={{
-                  borderRadius: "6px",
-                  fontSize: "0.725rem",
-                  fontWeight: 600,
-                  py: "2px",
-                  px: { xs: 0.8, sm: 1.1 },
-                  minWidth: 0,
-                  textTransform: "none",
-                  borderColor: "rgba(37, 99, 235, 0.35)",
-                  color: "#2563eb",
-                  bgcolor: "rgba(37, 99, 235, 0.05)",
-                  "& .MuiButton-startIcon": {
-                    mr: { xs: 0, sm: 0.5 },
-                  },
-                  "&:hover": {
-                    borderColor: "#2563eb",
-                    bgcolor: "rgba(37, 99, 235, 0.1)",
-                  },
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                  Upload new pdf
-                </Box>
-              </Button>
-            </Tooltip>
-          )}
-
           {onOpenVoiceControl && (
             <Tooltip title="Voice Command Center" placement="bottom">
               <Button

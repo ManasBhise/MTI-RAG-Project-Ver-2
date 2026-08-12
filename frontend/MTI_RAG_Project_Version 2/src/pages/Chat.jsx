@@ -5,8 +5,6 @@ import Message from "../Components/Message";
 import ChatInput from "../Components/ChatInput";
 import SettingsModal from "../Components/SettingsModal";
 import VoiceControlModal from "../Components/VoiceControlModal";
-import DocumentUploadModal from "../Components/DocumentUploadModal";
-import AuthModal from "../Components/AuthModal";
 import { useThemeMode } from "../App";
 import { exportFullConversationToPdf } from "../utils/exportPdf";
 import {
@@ -14,7 +12,6 @@ import {
   clearSession,
   getOrInitAnonymousSession,
   getStoredUser,
-  isUserAuthorized,
 } from "../services/api";
 import { formatErrorMessage } from "../utils/formatError";
 
@@ -23,8 +20,6 @@ function Chat() {
 
   const { toggleDarkMode } = useThemeMode();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [documentsModalOpen, setDocumentsModalOpen] = useState(false);
   const [voiceControlOpen, setVoiceControlOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -100,21 +95,6 @@ function Chat() {
     await getOrInitAnonymousSession();
   };
 
-  const handleUploadPdfClick = () => {
-    if (isUserAuthorized()) {
-      setDocumentsModalOpen(true);
-    } else {
-      setAuthModalOpen(true);
-    }
-  };
-
-  const handleAuthSuccess = (authUser) => {
-    setAuthModalOpen(false);
-    setDocumentsModalOpen(true);
-    setVoiceActionToast(`🔒 Authorized as ${authUser?.name || "Meteorologist"}`);
-    setTimeout(() => setVoiceActionToast(""), 4000);
-  };
-
   const checkAndExecuteVoiceCommand = (rawText) => {
     if (!rawText) return false;
     const clean = rawText.toLowerCase().trim().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "");
@@ -158,24 +138,6 @@ function Chat() {
     if (settingsKeywords.some((kw) => clean.includes(kw))) {
       setSettingsOpen(true);
       setVoiceActionToast("🎙️ Voice Command Executed: Opened Settings & Personalization.");
-      setTimeout(() => setVoiceActionToast(""), 4000);
-      return true;
-    }
-
-    // 2b. Open Knowledge Library / Documents Commands
-    const docKeywords = [
-      "open library",
-      "knowledge library",
-      "upload pdf",
-      "upload document",
-      "open documents",
-      "show documents",
-      "document library",
-      "manage documents",
-    ];
-    if (docKeywords.some((kw) => clean.includes(kw))) {
-      setDocumentsModalOpen(true);
-      setVoiceActionToast("🎙️ Voice Command Executed: Opened Knowledge Library & PDF Ingestion.");
       setTimeout(() => setVoiceActionToast(""), 4000);
       return true;
     }
@@ -429,7 +391,6 @@ function Chat() {
         userName={user?.name || "Meteorologist"}
         onClearChat={handleClearChat}
         onOpenSettings={() => setSettingsOpen(true)}
-        onUploadPdf={handleUploadPdfClick}
         onDownloadConversation={handleDownloadConversation}
         onOpenVoiceControl={() => setVoiceControlOpen(true)}
       />
@@ -510,19 +471,6 @@ function Chat() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onDeleteAllHistory={handleClearChat}
-      />
-
-      {/* Official IMD Login / Authorization Modal */}
-      <AuthModal
-        open={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        onSuccess={handleAuthSuccess}
-      />
-
-      {/* Knowledge Library & PDF Ingestion Modal */}
-      <DocumentUploadModal
-        open={documentsModalOpen}
-        onClose={() => setDocumentsModalOpen(false)}
       />
 
       {/* Voice Control Modal */}
