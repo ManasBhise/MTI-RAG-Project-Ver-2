@@ -63,13 +63,13 @@ function SettingsIcon() {
   );
 }
 
-function BookLibraryIcon() {
+function UploadPdfIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-      <line x1="12" y1="6" x2="16" y2="6"></line>
-      <line x1="12" y1="10" x2="16" y2="10"></line>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+      <polyline points="9 15 12 12 15 15"></polyline>
+      <line x1="12" y1="12" x2="12" y2="18"></line>
     </svg>
   );
 }
@@ -98,7 +98,7 @@ function Navbar({
   userName = "Meteorologist",
   onClearChat,
   onOpenSettings,
-  onOpenDocuments,
+  onUploadPdf,
   onDownloadConversation,
   onOpenVoiceControl,
 }) {
@@ -181,13 +181,13 @@ function Navbar({
 
         {/* Toolbar Actions */}
         <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.6, sm: 1 }, flexShrink: 0 }}>
-          {onOpenDocuments && (
-            <Tooltip title="Knowledge Library & Upload PDF Manuals" placement="bottom">
+          {onUploadPdf && (
+            <Tooltip title="Upload new PDF manual (Requires authentication)" placement="bottom">
               <Button
                 variant="outlined"
                 size="small"
-                onClick={onOpenDocuments}
-                startIcon={<BookLibraryIcon />}
+                onClick={onUploadPdf}
+                startIcon={<UploadPdfIcon />}
                 sx={{
                   borderRadius: "8px",
                   fontSize: "0.75rem",
@@ -209,7 +209,7 @@ function Navbar({
                 }}
               >
                 <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                  Knowledge Library
+                  Upload new pdf
                 </Box>
               </Button>
             </Tooltip>

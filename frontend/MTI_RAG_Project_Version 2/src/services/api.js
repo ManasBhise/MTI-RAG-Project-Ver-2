@@ -110,6 +110,24 @@ export const clearSession = () => {
 	localStorage.removeItem(USER_KEY);
 };
 
+export const loginUser = async (email, password) => {
+	const { data } = await api.post("/auth/login", { email, password });
+	if (data) {
+		saveSession(data);
+	}
+	return data;
+};
+
+export const isUserAuthorized = () => {
+	const user = getStoredUser();
+	if (!user) return false;
+	// Anonymous users have emails starting with anon_ or guest@
+	if (user.email && (user.email.startsWith("anon_") || user.email === "guest@mti.gov.in")) {
+		return false;
+	}
+	return true;
+};
+
 export const logoutUser = async () => {
 	const { data } = await api.post("/logout");
 	return data;

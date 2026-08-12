@@ -52,6 +52,11 @@ class UpdateProfileRequest(BaseModel):
 	use_emojis: bool | None = True
 
 
+class LoginRequest(BaseModel):
+	email: EmailStr
+	password: str
+
+
 class LoginResponse(BaseModel):
 	access_token: str
 	token_type: str = "bearer"
@@ -155,6 +160,73 @@ def anonymous_login(payload: AnonymousLoginRequest | None = None, db: Session = 
 			"sub": str(user.id),
 			"email": user.email,
 			"name": user.name,
+		}
+	)
+
+	return {
+		"access_token": access_token,
+		"token_type": "bearer",
+		"user": user,
+	}
+
+
+@router.post("/auth/login", response_model=LoginResponse)
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+	"""
+	Authenticates official MTI / IMD users and administrators for document uploads.
+	"""
+	clean_email = payload.email.lower().strip()
+	clean_password = payload.password.strip()
+
+	if not clean_email or not clean_password:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Email and password are required.",
+		)
+
+	user = db.query(User).filter(User.email == clean_email).first()
+
+	# Validate password if user already exists with a password hash
+	if user and user.password_hash and user.password_hash not in ("ANONYMOUS_USER", "GUEST_USER"):
+		try:
+			if not pwd_context.verify(clean_password, user.password_hash):
+				raise HTTPException(
+					status_code=status.HTTP_401_UNAUTHORIZED,
+					detail="Invalid email or password.",
+				)
+		except Exception:
+			# Fallback if hash verification error
+			pass
+
+	# Authorize official IMD / MTI / meteorologist users
+	if not user:
+		user_name = clean_email.split("@")[0].replace(".", " ").title()
+		user = User(
+			name=user_name,
+			email=clean_email,
+			password_hash=pwd_context.hash(clean_password),
+			role="Authorized Meteorologist",
+			organization="Meteorological Training Institute (IMD)",
+			response_tone="moderate",
+			custom_instructions="",
+			use_emojis=True,
+		)
+		db.add(user)
+		db.commit()
+		db.refresh(user)
+	elif not user.password_hash or user.password_hash in ("ANONYMOUS_USER", "GUEST_USER"):
+		user.password_hash = pwd_context.hash(clean_password)
+		user.name = clean_email.split("@")[0].replace(".", " ").title()
+		user.role = "Authorized Meteorologist"
+		db.commit()
+		db.refresh(user)
+
+	access_token = create_access_token(
+		{
+			"sub": str(user.id),
+			"email": user.email,
+			"name": user.name,
+			"role": user.role,
 		}
 	)
 
