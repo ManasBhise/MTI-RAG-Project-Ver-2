@@ -7,7 +7,7 @@
       "destination": "/api/index.py"
     },
     {
-      "source": "/(auth|chat|threads|history|health|static|user|docs|openapi.json)(.*)",
+      "source": "/(auth|chat|threads|history|documents|health|static|user|docs|openapi.json)(.*)",
       "destination": "/api/index.py"
     }
   ]

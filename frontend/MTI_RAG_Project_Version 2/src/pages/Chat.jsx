@@ -5,6 +5,7 @@ import Message from "../Components/Message";
 import ChatInput from "../Components/ChatInput";
 import SettingsModal from "../Components/SettingsModal";
 import VoiceControlModal from "../Components/VoiceControlModal";
+import DocumentUploadModal from "../Components/DocumentUploadModal";
 import { useThemeMode } from "../App";
 import { exportFullConversationToPdf } from "../utils/exportPdf";
 import {
@@ -20,6 +21,7 @@ function Chat() {
 
   const { toggleDarkMode } = useThemeMode();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [documentsModalOpen, setDocumentsModalOpen] = useState(false);
   const [voiceControlOpen, setVoiceControlOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -138,6 +140,24 @@ function Chat() {
     if (settingsKeywords.some((kw) => clean.includes(kw))) {
       setSettingsOpen(true);
       setVoiceActionToast("🎙️ Voice Command Executed: Opened Settings & Personalization.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 2b. Open Knowledge Library / Documents Commands
+    const docKeywords = [
+      "open library",
+      "knowledge library",
+      "upload pdf",
+      "upload document",
+      "open documents",
+      "show documents",
+      "document library",
+      "manage documents",
+    ];
+    if (docKeywords.some((kw) => clean.includes(kw))) {
+      setDocumentsModalOpen(true);
+      setVoiceActionToast("🎙️ Voice Command Executed: Opened Knowledge Library & PDF Ingestion.");
       setTimeout(() => setVoiceActionToast(""), 4000);
       return true;
     }
@@ -391,6 +411,7 @@ function Chat() {
         userName={user?.name || "Meteorologist"}
         onClearChat={handleClearChat}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenDocuments={() => setDocumentsModalOpen(true)}
         onDownloadConversation={handleDownloadConversation}
         onOpenVoiceControl={() => setVoiceControlOpen(true)}
       />
@@ -471,6 +492,12 @@ function Chat() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onDeleteAllHistory={handleClearChat}
+      />
+
+      {/* Knowledge Library & PDF Ingestion Modal */}
+      <DocumentUploadModal
+        open={documentsModalOpen}
+        onClose={() => setDocumentsModalOpen(false)}
       />
 
       {/* Voice Control Modal */}

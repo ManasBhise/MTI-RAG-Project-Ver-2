@@ -180,4 +180,26 @@ export const translateMessage = async (text, targetLanguage = "hindi") => {
 	return data;
 };
 
+export const fetchKnowledgeDocuments = async () => {
+	const { data } = await api.get("/documents");
+	return data;
+};
+
+export const uploadPdfDocument = async (file, onUploadProgress) => {
+	const formData = new FormData();
+	formData.append("file", file);
+	const { data } = await api.post("/documents/upload", formData, {
+		headers: {
+			"Content-Type": "multipart/form-data",
+		},
+		onUploadProgress,
+	});
+	return data;
+};
+
+export const deleteKnowledgeDocument = async (filename) => {
+	const { data } = await api.delete(`/documents/${encodeURIComponent(filename)}`);
+	return data;
+};
+
 export default api;

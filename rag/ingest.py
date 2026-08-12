@@ -174,4 +174,90 @@ def build_vector_store(
 	vector_store.save_local(str(target_dir))
 	logger.info("Saved FAISS index to %s", target_dir)
 
+	try:
+		from rag.pipeline import _load_vector_store
+		_load_vector_store.cache_clear()
+	except Exception:
+		pass
+
 	return vector_store
+
+
+def ingest_single_pdf(
+	pdf_path: Path,
+	output_dir: Path | None = None,
+) -> dict:
+	if not pdf_path.exists():
+		raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+
+	documents = load_pdf_documents([pdf_path])
+	if not documents:
+		raise RuntimeError(f"No readable text extracted from {pdf_path.name}")
+
+	chunks = split_documents(documents)
+	if not chunks:
+		raise RuntimeError(f"Could not generate text chunks from {pdf_path.name}")
+
+	target_dir = output_dir or VECTOR_STORE_DIR
+	target_dir.mkdir(parents=True, exist_ok=True)
+
+	try:
+		embeddings = get_embeddings()
+		index_file = target_dir / "index.faiss"
+		if index_file.exists():
+			vector_store = FAISS.load_local(
+				str(target_dir),
+				embeddings,
+				allow_dangerous_deserialization=True,
+			)
+			vector_store.add_documents(chunks)
+		else:
+			vector_store = FAISS.from_documents(chunks, embeddings)
+
+		vector_store.save_local(str(target_dir))
+		logger.info("Successfully ingested %s: %d pages, %d chunks", pdf_path.name, len(documents), len(chunks))
+
+		try:
+			from rag.pipeline import _load_vector_store
+			_load_vector_store.cache_clear()
+		except Exception:
+			pass
+
+		return {
+			"filename": pdf_path.name,
+			"pages": len(documents),
+			"chunks": len(chunks),
+			"status": "success",
+		}
+	except Exception as exc:
+		logger.warning("Embeddings or FAISS update failed for %s (%s). Text loaded.", pdf_path.name, exc)
+		return {
+			"filename": pdf_path.name,
+			"pages": len(documents),
+			"chunks": len(chunks),
+			"status": "text_extracted",
+			"warning": str(exc),
+		}
+
+
+def list_knowledge_documents(data_dir: Path | None = None) -> list[dict]:
+	root = data_dir or DATA_DIR
+	if not root.exists():
+		return []
+
+	pdf_files = sorted(root.rglob("*.pdf"))
+	results = []
+	for pdf in pdf_files:
+		try:
+			stat = pdf.stat()
+			results.append({
+				"filename": pdf.name,
+				"size_bytes": stat.st_size,
+				"size_mb": round(stat.st_size / (1024 * 1024), 2),
+				"updated_at": int(stat.st_mtime),
+				"relative_path": pdf.relative_to(PROJECT_ROOT).as_posix() if pdf.is_relative_to(PROJECT_ROOT) else pdf.name,
+			})
+		except Exception:
+			continue
+	return results
+

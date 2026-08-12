@@ -2,7 +2,7 @@ import { AppBar, Avatar, Box, Button, Chip, IconButton, Toolbar, Tooltip, Typogr
 import imdLogo from "../assets/imd_logo.png";
 import { useThemeMode } from "../App";
 
-function LogoIcon({ size = { xs: 34, sm: 42 } }) {
+function LogoIcon({ size = { xs: 36, sm: 44 } }) {
   return (
     <Box
       component="img"
@@ -63,6 +63,17 @@ function SettingsIcon() {
   );
 }
 
+function BookLibraryIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      <line x1="12" y1="6" x2="16" y2="6"></line>
+      <line x1="12" y1="10" x2="16" y2="10"></line>
+    </svg>
+  );
+}
+
 function TrashIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -83,7 +94,14 @@ function VoiceAssistantIcon() {
   );
 }
 
-function Navbar({ userName = "Meteorologist", onClearChat, onOpenSettings, onDownloadConversation, onOpenVoiceControl }) {
+function Navbar({
+  userName = "Meteorologist",
+  onClearChat,
+  onOpenSettings,
+  onOpenDocuments,
+  onDownloadConversation,
+  onOpenVoiceControl,
+}) {
   const { darkMode, toggleDarkMode } = useThemeMode();
 
   return (
@@ -163,6 +181,40 @@ function Navbar({ userName = "Meteorologist", onClearChat, onOpenSettings, onDow
 
         {/* Toolbar Actions */}
         <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.6, sm: 1 }, flexShrink: 0 }}>
+          {onOpenDocuments && (
+            <Tooltip title="Knowledge Library & Upload PDF Manuals" placement="bottom">
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={onOpenDocuments}
+                startIcon={<BookLibraryIcon />}
+                sx={{
+                  borderRadius: "8px",
+                  fontSize: "0.75rem",
+                  fontWeight: 650,
+                  py: "4px",
+                  px: { xs: 1, sm: 1.4 },
+                  minWidth: 0,
+                  textTransform: "none",
+                  borderColor: "rgba(37, 99, 235, 0.35)",
+                  color: "#2563eb",
+                  bgcolor: "rgba(37, 99, 235, 0.06)",
+                  "& .MuiButton-startIcon": {
+                    mr: { xs: 0, sm: 0.6 },
+                  },
+                  "&:hover": {
+                    borderColor: "#2563eb",
+                    bgcolor: "rgba(37, 99, 235, 0.12)",
+                  },
+                }}
+              >
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                  Knowledge Library
+                </Box>
+              </Button>
+            </Tooltip>
+          )}
+
           {onOpenVoiceControl && (
             <Tooltip title="Voice Command Center" placement="bottom">
               <Button
