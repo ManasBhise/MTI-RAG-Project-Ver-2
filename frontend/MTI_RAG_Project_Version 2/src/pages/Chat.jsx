@@ -5,21 +5,14 @@ import Sidebar from "../Components/Sidebar";
 import Message from "../Components/Message";
 import ChatInput from "../Components/ChatInput";
 import SettingsModal from "../Components/SettingsModal";
-import ThreadHistoryDrawer from "../Components/ThreadHistoryDrawer";
 import VoiceControlModal from "../Components/VoiceControlModal";
 import { useThemeMode } from "../App";
 import { exportFullConversationToPdf } from "../utils/exportPdf";
 import {
   askQuestion,
   clearSession,
-  deleteAllHistory,
-  deleteHistoryItem,
-  deleteThread,
-  fetchThreadMessages,
-  fetchThreads,
   getOrInitAnonymousSession,
   getStoredUser,
-  renameThread,
 } from "../services/api";
 import { formatErrorMessage } from "../utils/formatError";
 
@@ -30,7 +23,6 @@ function Chat() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
   const [voiceControlOpen, setVoiceControlOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,7 +30,6 @@ function Chat() {
   const [activeThreadId, setActiveThreadId] = useState(null);
   const [responseMode, setResponseMode] = useState("moderate");
   const threadStoreRef = useRef({});
-  const [threads, setThreads] = useState([]);
   const [messages, setMessages] = useState([
     {
       id: "welcome-1",
@@ -54,7 +45,7 @@ function Chat() {
   const handleDownloadConversation = () => {
     if (!messages || messages.length === 0) return;
     exportFullConversationToPdf({
-      threadTitle: activeThread?.title || "Active Conversation",
+      threadTitle: "MTI Assistant Session",
       messages,
     });
   };
@@ -70,22 +61,6 @@ function Chat() {
       return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
   };
-
-  const chatList = useMemo(
-    () =>
-      Array.isArray(threads)
-        ? threads.map((t) => ({
-            id: t.id,
-            title: t.title || "Untitled Chat",
-          }))
-        : [],
-    [threads]
-  );
-
-  const activeThread = useMemo(
-    () => (Array.isArray(threads) ? threads.find((t) => t.id === activeThreadId) : null),
-    [threads, activeThreadId]
-  );
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -103,18 +78,32 @@ function Chat() {
     initData();
   }, []);
 
-  const loadMessagesForThread = (threadId) => {
-    if (threadStoreRef.current[threadId]) {
-      setMessages(threadStoreRef.current[threadId]);
-    }
+  const handleClearChat = () => {
+    setActiveThreadId(null);
+    threadStoreRef.current = {};
+    setMessages([
+      {
+        id: "welcome-1",
+        role: "assistant",
+        text: "Welcome to the Meteorological Training Institute Knowledge Repository. You may query official training literature, weather observation manuals, and meteorological documentations.",
+        references: ["MTI Knowledge Base Index"],
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+  };
+
+  const handleResetSession = async () => {
+    clearSession();
+    handleClearChat();
+    await getOrInitAnonymousSession();
   };
 
   const checkAndExecuteVoiceCommand = (rawText) => {
     if (!rawText) return false;
     const clean = rawText.toLowerCase().trim().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "");
 
-    // 1. New Conversation Commands
-    const newChatKeywords = [
+    // 1. Clear Chat / Reset Session Commands
+    const clearChatKeywords = [
       "new conversation",
       "start new conversation",
       "new chat",
@@ -126,11 +115,12 @@ function Chat() {
       "reset chat",
       "clear conversation",
       "new thread",
-      "start new thread",
+      "reset session",
+      "clear session",
     ];
-    if (newChatKeywords.some((kw) => clean.includes(kw))) {
-      handleNewChat();
-      setVoiceActionToast("🎙️ Voice Command Executed: Started a new conversation thread.");
+    if (clearChatKeywords.some((kw) => clean.includes(kw))) {
+      handleClearChat();
+      setVoiceActionToast("🎙️ Voice Command Executed: Cleared active conversation.");
       setTimeout(() => setVoiceActionToast(""), 4000);
       return true;
     }
@@ -155,26 +145,7 @@ function Chat() {
       return true;
     }
 
-    // 3. Open History Commands
-    const historyKeywords = [
-      "open history",
-      "show history",
-      "view history",
-      "conversation history",
-      "open drawer",
-      "show drawer",
-      "chat history",
-      "open threads",
-      "history",
-    ];
-    if (historyKeywords.some((kw) => clean.includes(kw))) {
-      setHistoryDrawerOpen(true);
-      setVoiceActionToast("🎙️ Voice Command Executed: Opened Conversation History.");
-      setTimeout(() => setVoiceActionToast(""), 4000);
-      return true;
-    }
-
-    // 4. Voice Mode switching commands
+    // 3. Voice Mode switching commands
     if (clean.includes("concise mode") || clean.includes("switch to concise") || clean.includes("set concise")) {
       setResponseMode("concise");
       setVoiceActionToast("🎙️ Voice Command Executed: Switched response depth to Concise.");
@@ -194,7 +165,7 @@ function Chat() {
       return true;
     }
 
-    // 5. Light / Dark Theme Switching Commands
+    // 4. Light / Dark Theme Switching Commands
     if (clean.includes("dark mode") || clean.includes("enable dark mode") || clean.includes("switch to dark")) {
       toggleDarkMode(true);
       setVoiceActionToast("🎙️ Voice Command Executed: Enabled Dark Theme.");
@@ -208,7 +179,7 @@ function Chat() {
       return true;
     }
 
-    // 6. Stop TTS / Speaking Commands
+    // 5. Stop TTS / Speaking Commands
     const stopSpeechKeywords = ["stop speaking", "stop reading", "quiet", "silence", "stop voice", "mute"];
     if (stopSpeechKeywords.some((kw) => clean === kw || clean.startsWith(kw))) {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -219,7 +190,7 @@ function Chat() {
       return true;
     }
 
-    // 7. Read Aloud / Speak Latest Answer Commands
+    // 6. Read Aloud / Speak Latest Answer Commands
     const speakKeywords = [
       "read answer",
       "read out",
@@ -254,7 +225,7 @@ function Chat() {
       return true;
     }
 
-    // 8. Download / Export PDF Commands
+    // 7. Download / Export PDF Commands
     const downloadKeywords = ["download conversation", "export pdf", "download pdf", "export conversation", "save as pdf"];
     if (downloadKeywords.some((kw) => clean.includes(kw))) {
       handleDownloadConversation();
@@ -263,16 +234,7 @@ function Chat() {
       return true;
     }
 
-    // 9. Clear All History Commands
-    const clearAllKeywords = ["delete all history", "clear all history", "delete all chats", "clear all chats", "wipe history"];
-    if (clearAllKeywords.some((kw) => clean.includes(kw))) {
-      handleDeleteAllHistory();
-      setVoiceActionToast("🎙️ Voice Command Executed: Cleared all conversation history.");
-      setTimeout(() => setVoiceActionToast(""), 4000);
-      return true;
-    }
-
-    // 10. Delete Latest Question Commands
+    // 8. Delete Latest Question Commands
     const deleteLatestKeywords = ["delete last question", "delete latest question", "delete last message", "delete latest message", "undo last message"];
     if (deleteLatestKeywords.some((kw) => clean.includes(kw))) {
       const assistantMessages = messages.filter((m) => m.role === "assistant" && m.historyId);
@@ -283,14 +245,6 @@ function Chat() {
         setTimeout(() => setVoiceActionToast(""), 4000);
         return true;
       }
-    }
-
-    // 11. Reset Session Commands
-    const resetKeywords = ["reset session", "new session", "clear session", "log out", "logout", "sign out"];
-    if (resetKeywords.some((kw) => clean.includes(kw))) {
-      setVoiceActionToast("🎙️ Voice Command Executed: Resetting session...");
-      setTimeout(() => handleResetSession(), 1200);
-      return true;
     }
 
     return false;
@@ -314,7 +268,6 @@ function Chat() {
     setMessages(currentMessages);
     setLoading(true);
 
-    // Build context history from recent Q&A turns in this active thread (In-Memory RAM)
     const recentHistory = [];
     for (let i = 0; i < messages.length; i++) {
       const m = messages[i];
@@ -343,36 +296,12 @@ function Chat() {
       const threadId = response.thread_id || activeThreadId || `thread_${Date.now()}`;
       setActiveThreadId(threadId);
       threadStoreRef.current[threadId] = updatedMessages;
-
-      setThreads((prev) => {
-        const exists = prev.find((t) => t.id === threadId);
-        if (exists) {
-          return prev.map((t) => (t.id === threadId ? { ...t, updated_at: new Date() } : t));
-        }
-        const titleSnippet = text.length > 35 ? text.substring(0, 35) + "..." : text;
-        return [{ id: threadId, title: titleSnippet, created_at: new Date(), updated_at: new Date() }, ...prev];
-      });
     } catch (err) {
       const message = formatErrorMessage(err?.response?.data?.detail, err?.message ? `Unable to reach assistant backend (${err.message}).` : "Unable to get response from assistant.");
       setError(message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSelectThread = (threadId) => {
-    if (activeThreadId) {
-      threadStoreRef.current[activeThreadId] = messages;
-    }
-    setActiveThreadId(threadId);
-    setMobileSidebarOpen(false);
-    loadMessagesForThread(threadId);
-  };
-
-  const handleRenameThread = (threadId, newTitle) => {
-    setThreads((prev) =>
-      prev.map((t) => (t.id === threadId ? { ...t, title: newTitle.trim() } : t))
-    );
   };
 
   const handleDeleteMessagePair = (historyId, messageId) => {
@@ -393,58 +322,14 @@ function Chat() {
     });
   };
 
-  const handleDeleteThread = (threadId) => {
-    delete threadStoreRef.current[threadId];
-    setThreads((prev) => prev.filter((t) => t.id !== threadId));
-
-    if (activeThreadId === threadId) {
-      handleNewChat();
-    }
-  };
-
-  const handleDeleteAllHistory = () => {
-    threadStoreRef.current = {};
-    setThreads([]);
-    setActiveThreadId(null);
-    setMessages([
-      {
-        id: "welcome-1",
-        role: "assistant",
-        text: "Welcome to the Meteorological Training Institute Knowledge Repository. You may query official training literature, weather observation manuals, and meteorological documentations.",
-        references: ["MTI Knowledge Base Index"],
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
-    ]);
-  };
-
-  const handleNewChat = () => {
-    if (activeThreadId) {
-      threadStoreRef.current[activeThreadId] = messages;
-    }
-    setError("");
-    setActiveThreadId(null);
-    setMessages([
-      {
-        id: Date.now(),
-        role: "assistant",
-        text: "New conversation thread initialized. Please submit your query regarding MTI documentation.",
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
-    ]);
-    setMobileSidebarOpen(false);
-  };
-
   const handleEditMessage = async (messageId, newText, newMode) => {
     setError("");
 
-    // Find the index of the user message being edited
     const msgIndex = messages.findIndex((m) => m.id === messageId);
     if (msgIndex === -1) return;
 
-    // Keep only messages before the edited message
     const previousMessages = messages.slice(0, msgIndex);
 
-    // Create the updated user message
     const updatedUserMessage = {
       id: Date.now(),
       role: "user",
@@ -491,22 +376,6 @@ function Chat() {
     }
   };
 
-  const handleResetSession = () => {
-    clearSession();
-    threadStoreRef.current = {};
-    setThreads([]);
-    setActiveThreadId(null);
-    setMessages([
-      {
-        id: "welcome-1",
-        role: "assistant",
-        text: "Welcome to the Meteorological Training Institute Knowledge Repository. You may query official training literature, weather observation manuals, and meteorological documentations.",
-        references: ["MTI Knowledge Base Index"],
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
-    ]);
-  };
-
   return (
     <Box
       sx={{
@@ -520,6 +389,7 @@ function Chat() {
         textAlign: "left",
       }}
     >
+      {/* Desktop Sidebar */}
       <Box
         sx={{
           display: { xs: "none", md: "block" },
@@ -531,31 +401,32 @@ function Chat() {
         }}
       >
         <Sidebar
-          chats={chatList}
-          selectedChatId={activeThreadId}
-          onNewChat={handleNewChat}
-          onSelectChat={handleSelectThread}
-          onDeleteChat={handleDeleteThread}
-          onRenameThread={handleRenameThread}
-          onDownloadConversation={handleDownloadConversation}
+          onClearChat={handleClearChat}
+          onSelectPrompt={handleSend}
+          responseMode={responseMode}
+          onSetResponseMode={setResponseMode}
           onOpenSettings={() => setSettingsOpen(true)}
           onToggleCollapse={() => setDesktopSidebarOpen(false)}
         />
       </Box>
 
+      {/* Mobile Drawer Sidebar */}
       <Drawer
         open={mobileSidebarOpen}
         onClose={() => setMobileSidebarOpen(false)}
         sx={{ display: { xs: "block", md: "none" } }}
       >
         <Sidebar
-          chats={chatList}
-          selectedChatId={activeThreadId}
-          onNewChat={handleNewChat}
-          onSelectChat={handleSelectThread}
-          onDeleteChat={handleDeleteThread}
-          onRenameThread={handleRenameThread}
-          onDownloadConversation={handleDownloadConversation}
+          onClearChat={() => {
+            setMobileSidebarOpen(false);
+            handleClearChat();
+          }}
+          onSelectPrompt={(prompt) => {
+            setMobileSidebarOpen(false);
+            handleSend(prompt);
+          }}
+          responseMode={responseMode}
+          onSetResponseMode={setResponseMode}
           onOpenSettings={() => {
             setMobileSidebarOpen(false);
             setSettingsOpen(true);
@@ -563,6 +434,7 @@ function Chat() {
         />
       </Drawer>
 
+      {/* Main Chat Viewport */}
       <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
         <Navbar
           onToggleSidebar={() => {
@@ -575,7 +447,6 @@ function Chat() {
           isSidebarOpen={desktopSidebarOpen}
           userName={user?.name || "Meteorologist"}
           onLogout={handleResetSession}
-          onOpenHistory={() => setHistoryDrawerOpen(true)}
           onDownloadConversation={handleDownloadConversation}
           onOpenVoiceControl={() => setVoiceControlOpen(true)}
         />
@@ -601,7 +472,7 @@ function Chat() {
             {messages.length === 0 ? (
               <Box sx={{ py: 6, px: 2, textAlign: "left" }}>
                 <Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600, color: "text.primary", mb: 0.5 }}>
-                  Welcome to MTI Knowledge Assistant (Beta)
+                  Welcome to MTI Knowledge Assistant
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8375rem" }}>
                   Ask any question regarding MTI meteorological training documentation, weather observation guidelines, and institute courseware.
@@ -664,22 +535,9 @@ function Chat() {
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        onDeleteAllHistory={handleDeleteAllHistory}
+        onDeleteAllHistory={handleClearChat}
       />
 
-      <ThreadHistoryDrawer
-        open={historyDrawerOpen}
-        onClose={() => setHistoryDrawerOpen(false)}
-        messages={messages}
-        threadTitle={activeThread?.title || "Active Conversation"}
-        onDeleteQuestion={handleDeleteMessagePair}
-        onJumpToMessage={(msgId) => {
-          const el = document.getElementById(msgId);
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }}
-      />
       <VoiceControlModal
         open={voiceControlOpen}
         onClose={() => setVoiceControlOpen(false)}

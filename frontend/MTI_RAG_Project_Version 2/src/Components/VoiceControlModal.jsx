@@ -49,8 +49,8 @@ const COMMAND_GROUPS = [
   {
     category: "💬 Conversation Control",
     commands: [
-      { trigger: '"New conversation" / "Start new chat"', desc: "Initializes a fresh chat thread" },
-      { trigger: '"Download conversation" / "Export PDF"', desc: "Downloads conversation as PDF" },
+      { trigger: '"Clear chat" / "Reset session"', desc: "Clears current chat and resets active session" },
+      { trigger: '"Download conversation" / "Export PDF"', desc: "Downloads conversation transcript as PDF" },
       { trigger: '"Delete last message" / "Remove question"', desc: "Deletes the latest question & answer pair" },
     ],
   },
@@ -64,7 +64,6 @@ const COMMAND_GROUPS = [
     category: "⚙️ Navigation & Settings",
     commands: [
       { trigger: '"Open settings" / "Show preferences"', desc: "Opens Personalization & Settings modal" },
-      { trigger: '"Open history" / "Show history"', desc: "Opens Thread History drawer" },
       { trigger: '"Voice help" / "Show commands"', desc: "Opens this Voice Command Center" },
     ],
   },

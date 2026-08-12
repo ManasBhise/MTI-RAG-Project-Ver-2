@@ -249,10 +249,10 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
             </IconButton>
           </Tooltip>
 
-          {onOpenHistory && (
-            <Tooltip title="Thread history menu" placement="bottom">
+          {onDownloadConversation && (
+            <Tooltip title="Export conversation as PDF" placement="bottom">
               <IconButton
-                onClick={onOpenHistory}
+                onClick={onDownloadConversation}
                 size="small"
                 sx={{
                   color: "text.secondary",
@@ -263,7 +263,7 @@ function Navbar({ onToggleSidebar, isSidebarOpen = true, userName = "User", onLo
                   "&:hover": { bgcolor: "action.hover", color: "#2563eb" },
                 }}
               >
-                <HistoryIcon />
+                <DownloadIcon />
               </IconButton>
             </Tooltip>
           )}
