@@ -8,7 +8,6 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  Divider,
   IconButton,
   LinearProgress,
   Paper,
@@ -22,7 +21,7 @@ import { fetchKnowledgeDocuments, uploadPdfDocument, deleteKnowledgeDocument } f
 
 function CloseIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18"></line>
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
@@ -31,7 +30,7 @@ function CloseIcon() {
 
 function UploadCloudIcon() {
   return (
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="16 16 12 12 8 16"></polyline>
       <line x1="12" y1="12" x2="12" y2="21"></line>
       <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
@@ -42,7 +41,7 @@ function UploadCloudIcon() {
 
 function PdfFileIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
       <polyline points="14 2 14 8 20 8"></polyline>
       <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -54,7 +53,7 @@ function PdfFileIcon() {
 
 function TrashIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6"></polyline>
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     </svg>
@@ -63,7 +62,7 @@ function TrashIcon() {
 
 function CheckCircleIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
       <polyline points="22 4 12 14.01 9 11.01"></polyline>
     </svg>
@@ -90,8 +89,8 @@ function DocumentUploadModal({ open, onClose }) {
       if (res && res.documents) {
         setDocuments(res.documents);
       }
-    } catch (err) {
-      console.warn("Could not load knowledge documents:", err);
+    } catch {
+      // Ignored
     } finally {
       setLoadingDocs(false);
     }
@@ -100,10 +99,9 @@ function DocumentUploadModal({ open, onClose }) {
   useEffect(() => {
     if (open) {
       loadDocuments();
-      setSuccessMessage("");
-      setErrorMessage("");
       setSelectedFile(null);
-      setUploading(false);
+      setErrorMessage("");
+      setSuccessMessage("");
       setUploadProgress(0);
     }
   }, [open]);
@@ -112,7 +110,7 @@ function DocumentUploadModal({ open, onClose }) {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.name.toLowerCase().endsWith(".pdf")) {
-        setErrorMessage("Please select a valid PDF file.");
+        setErrorMessage("Only PDF (.pdf) files are supported.");
         return;
       }
       setSelectedFile(file);
@@ -150,19 +148,19 @@ function DocumentUploadModal({ open, onClose }) {
 
     setUploading(true);
     setUploadProgress(15);
-    setUploadStage("Uploading PDF to knowledge repository...");
+    setUploadStage("Uploading PDF...");
     setErrorMessage("");
     setSuccessMessage("");
 
     try {
       const timer1 = setTimeout(() => {
         setUploadProgress(45);
-        setUploadStage("Extracting text and high-resolution diagrams...");
+        setUploadStage("Extracting text and charts...");
       }, 1200);
 
       const timer2 = setTimeout(() => {
         setUploadProgress(75);
-        setUploadStage("Computing semantic vector embeddings & updating FAISS...");
+        setUploadStage("Computing vector embeddings...");
       }, 2800);
 
       const res = await uploadPdfDocument(selectedFile, (progressEvent) => {
@@ -203,11 +201,11 @@ function DocumentUploadModal({ open, onClose }) {
     <Dialog
       open={open}
       onClose={uploading ? undefined : onClose}
-      maxWidth="md"
+      maxWidth="sm"
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: "16px",
+          borderRadius: "14px",
           bgcolor: "background.paper",
           backgroundImage: "none",
           overflow: "hidden",
@@ -220,41 +218,41 @@ function DocumentUploadModal({ open, onClose }) {
           alignItems: "center",
           justifyContent: "space-between",
           pb: 1,
-          pt: 2.5,
-          px: 3,
+          pt: 1.75,
+          px: 2.25,
           borderBottom: "1px solid",
           borderColor: "divider",
         }}
       >
         <Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: "1.1rem" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: "0.95rem" }}>
               MTI Knowledge Library & Ingestion
             </Typography>
-            <Chip label="RAG Vector Store" size="small" color="primary" sx={{ height: 20, fontSize: "0.65rem", fontWeight: 700 }} />
+            <Chip label="RAG Vector Store" size="small" color="primary" sx={{ height: 17, fontSize: "0.575rem", fontWeight: 700 }} />
           </Box>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem" }}>
             Upload new meteorological manuals to automatically index them into the active assistant knowledge base.
           </Typography>
         </Box>
-        <IconButton onClick={onClose} size="small" disabled={uploading} sx={{ color: "text.secondary" }}>
+        <IconButton onClick={onClose} size="small" disabled={uploading} sx={{ color: "text.secondary", p: 0.4 }}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
-      <Box sx={{ px: 3, pt: 1, borderBottom: "1px solid", borderColor: "divider" }}>
+      <Box sx={{ px: 2.25, pt: 0.5, borderBottom: "1px solid", borderColor: "divider" }}>
         <Tabs value={tabIndex} onChange={(_, val) => setTabIndex(val)} textColor="primary" indicatorColor="primary">
-          <Tab label="Upload & Index PDF" sx={{ textTransform: "none", fontWeight: 650, fontSize: "0.85rem" }} />
+          <Tab label="Upload & Index PDF" sx={{ textTransform: "none", fontWeight: 600, fontSize: "0.75rem", minHeight: 36, py: 0.5 }} />
           <Tab
             label={`Indexed Manuals (${documents.length})`}
-            sx={{ textTransform: "none", fontWeight: 650, fontSize: "0.85rem" }}
+            sx={{ textTransform: "none", fontWeight: 600, fontSize: "0.75rem", minHeight: 36, py: 0.5 }}
           />
         </Tabs>
       </Box>
 
-      <DialogContent sx={{ p: 3 }}>
+      <DialogContent sx={{ p: 2.25 }}>
         {errorMessage && (
-          <Alert severity="error" sx={{ mb: 2.5, borderRadius: "8px", fontSize: "0.835rem" }} onClose={() => setErrorMessage("")}>
+          <Alert severity="error" sx={{ mb: 2, borderRadius: "6px", fontSize: "0.75rem", py: 0.5 }} onClose={() => setErrorMessage("")}>
             {errorMessage}
           </Alert>
         )}
@@ -263,7 +261,7 @@ function DocumentUploadModal({ open, onClose }) {
           <Alert
             severity="success"
             icon={<CheckCircleIcon />}
-            sx={{ mb: 2.5, borderRadius: "8px", fontSize: "0.835rem", bgcolor: "rgba(34, 197, 94, 0.12)", color: "#15803d", fontWeight: 600 }}
+            sx={{ mb: 2, borderRadius: "6px", fontSize: "0.75rem", py: 0.5, bgcolor: "rgba(34, 197, 94, 0.1)", color: "#15803d", fontWeight: 600 }}
             onClose={() => setSuccessMessage("")}
           >
             {successMessage}
@@ -280,15 +278,15 @@ function DocumentUploadModal({ open, onClose }) {
               onDrop={handleDrop}
               onClick={() => !uploading && fileInputRef.current?.click()}
               sx={{
-                p: 4,
+                p: 3,
                 textAlign: "center",
                 cursor: uploading ? "not-allowed" : "pointer",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 borderStyle: "dashed",
-                borderWidth: 2,
+                borderWidth: 1.5,
                 borderColor: isDragging ? "primary.main" : "divider",
                 bgcolor: isDragging ? "rgba(37, 99, 235, 0.05)" : "action.hover",
-                transition: "all 0.2s ease-in-out",
+                transition: "all 0.15s ease-in-out",
                 "&:hover": {
                   borderColor: uploading ? "divider" : "primary.main",
                   bgcolor: uploading ? "action.hover" : "rgba(37, 99, 235, 0.04)",
@@ -303,57 +301,60 @@ function DocumentUploadModal({ open, onClose }) {
                 style={{ display: "none" }}
               />
 
-              <Box sx={{ color: "primary.main", mb: 1.5, display: "flex", justifyContent: "center" }}>
+              <Box sx={{ color: "primary.main", mb: 1, display: "flex", justifyContent: "center" }}>
                 <UploadCloudIcon />
               </Box>
 
-              <Typography variant="body1" sx={{ fontWeight: 650, fontSize: "0.925rem", color: "text.primary", mb: 0.5 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.825rem", color: "text.primary", mb: 0.25 }}>
                 {selectedFile ? selectedFile.name : "Drag & Drop your MTI PDF manual here"}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.775rem", display: "block" }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", display: "block" }}>
                 {selectedFile
-                  ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Click "Index Document" to apply RAG embeddings`
-                  : "or browse files from your computer (Supports official IMD observation handbooks, radar guides, etc.)"}
+                  ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Ready for RAG embedding`
+                  : "or browse PDF files from your device"}
               </Typography>
             </Paper>
 
-            {/* Upload & Indexing Progress */}
+            {/* Upload Progress */}
             {uploading && (
-              <Box sx={{ mt: 3, p: 2, borderRadius: "10px", bgcolor: "action.hover", border: "1px solid", borderColor: "divider" }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.825rem", color: "text.primary" }}>
+              <Box sx={{ mt: 2, p: 1.5, borderRadius: "8px", bgcolor: "action.hover", border: "1px solid", borderColor: "divider" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.75 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.primary" }}>
                     {uploadStage}
                   </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main" }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.75rem", color: "primary.main" }}>
                     {uploadProgress}%
                   </Typography>
                 </Box>
-                <LinearProgress variant="determinate" value={uploadProgress} sx={{ height: 6, borderRadius: 3 }} />
+                <LinearProgress variant="determinate" value={uploadProgress} sx={{ height: 5, borderRadius: 2.5 }} />
               </Box>
             )}
 
             {/* Action Buttons */}
-            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.5, mt: 3 }}>
+            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 2.25 }}>
               <Button
                 variant="outlined"
+                size="small"
                 onClick={onClose}
                 disabled={uploading}
-                sx={{ textTransform: "none", borderRadius: "8px", fontWeight: 600 }}
+                sx={{ textTransform: "none", borderRadius: "6px", fontWeight: 600, fontSize: "0.725rem", py: "3px", px: "10px" }}
               >
                 Close
               </Button>
               <Button
                 variant="contained"
+                size="small"
                 onClick={handleUpload}
                 disabled={!selectedFile || uploading}
-                startIcon={uploading ? <CircularProgress size={16} color="inherit" /> : <UploadCloudIcon />}
                 sx={{
                   textTransform: "none",
-                  borderRadius: "8px",
+                  borderRadius: "6px",
                   fontWeight: 650,
-                  px: 2.5,
+                  fontSize: "0.725rem",
+                  py: "3px",
+                  px: "12px",
                   background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                  boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                  boxShadow: "0 1px 4px rgba(37, 99, 235, 0.2)",
                 }}
               >
                 {uploading ? "Indexing RAG..." : "Index into Knowledge Base"}
@@ -365,24 +366,24 @@ function DocumentUploadModal({ open, onClose }) {
         {tabIndex === 1 && (
           <Box>
             {loadingDocs ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress size={28} />
+              <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                <CircularProgress size={22} />
               </Box>
             ) : documents.length === 0 ? (
-              <Box sx={{ py: 4, textAlign: "center" }}>
-                <Typography variant="body2" color="text.secondary">
-                  No documents found in knowledge repository. Upload a PDF manual to start indexing.
+              <Box sx={{ py: 3, textAlign: "center" }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+                  No documents found in knowledge repository.
                 </Typography>
               </Box>
             ) : (
-              <Stack spacing={1.5}>
+              <Stack spacing={1}>
                 {documents.map((doc, idx) => (
                   <Paper
                     key={idx}
                     variant="outlined"
                     sx={{
-                      p: 1.75,
-                      borderRadius: "10px",
+                      p: 1.25,
+                      borderRadius: "8px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
@@ -390,20 +391,20 @@ function DocumentUploadModal({ open, onClose }) {
                       "&:hover": { bgcolor: "action.hover" },
                     }}
                   >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
                       <PdfFileIcon />
                       <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.85rem" }} noWrap>
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.785rem" }} noWrap>
                           {doc.filename}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.725rem" }}>
-                          {doc.size_mb} MB {doc.updated_at ? `• Modified: ${new Date(doc.updated_at * 1000).toLocaleDateString()}` : ""}
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.675rem" }}>
+                          {doc.size_mb} MB {doc.updated_at ? `• ${new Date(doc.updated_at * 1000).toLocaleDateString()}` : ""}
                         </Typography>
                       </Box>
                     </Box>
 
-                    <Tooltip title="Remove document & rebuild index" placement="left">
-                      <IconButton size="small" onClick={() => handleDelete(doc.filename)} sx={{ color: "text.secondary", "&:hover": { color: "#ef4444" } }}>
+                    <Tooltip title="Remove manual" placement="left">
+                      <IconButton size="small" onClick={() => handleDelete(doc.filename)} sx={{ color: "text.secondary", p: 0.4, "&:hover": { color: "#ef4444" } }}>
                         <TrashIcon />
                       </IconButton>
                     </Tooltip>
