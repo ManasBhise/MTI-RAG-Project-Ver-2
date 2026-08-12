@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npm --prefix \"frontend/MTI_RAG_Project_Version 2\" install && npm --prefix \"frontend/MTI_RAG_Project_Version 2\" run build"
+    "build": "npm --prefix \"frontend/MTI_RAG_Project_Version 2\" install && npm --prefix \"frontend/MTI_RAG_Project_Version 2\" run build && node -e \"const fs=require('fs'); fs.cpSync('frontend/MTI_RAG_Project_Version 2/dist', 'dist', {recursive:true});\""
   }
 }
