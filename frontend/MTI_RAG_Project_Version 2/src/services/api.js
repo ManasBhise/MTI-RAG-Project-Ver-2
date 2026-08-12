@@ -115,8 +115,13 @@ export const logoutUser = async () => {
 	return data;
 };
 
-export const askQuestion = async (question, mode = "moderate", threadId = null) => {
-	const { data } = await api.post("/chat", { question, mode, thread_id: threadId });
+export const askQuestion = async (question, mode = "moderate", threadId = null, chatHistory = []) => {
+	const { data } = await api.post("/chat", {
+		question,
+		mode,
+		thread_id: threadId,
+		chat_history: chatHistory,
+	});
 	return data;
 };
 

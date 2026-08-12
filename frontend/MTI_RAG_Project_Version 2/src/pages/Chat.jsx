@@ -37,6 +37,7 @@ function Chat() {
   const [voiceActionToast, setVoiceActionToast] = useState("");
   const [activeThreadId, setActiveThreadId] = useState(null);
   const [responseMode, setResponseMode] = useState("moderate");
+  const threadStoreRef = useRef({});
   const [threads, setThreads] = useState([]);
   const [messages, setMessages] = useState([
     {
@@ -94,64 +95,17 @@ function Chat() {
     scrollToBottom();
   }, [messages, loading]);
 
-  const loadThreads = async () => {
-    try {
-      const data = await fetchThreads();
-      if (Array.isArray(data)) {
-        setThreads(data);
-        return data;
-      }
-      setThreads([]);
-      return [];
-    } catch (err) {
-      const message = formatErrorMessage(err?.response?.data?.detail, "Unable to load conversation threads.");
-      setError(message);
-      setThreads([]);
-      return [];
-    }
-  };
-
   useEffect(() => {
     const initData = async () => {
       await getOrInitAnonymousSession();
       setError("");
-      const threadData = await loadThreads();
-      if (Array.isArray(threadData) && threadData.length > 0) {
-        const latest = threadData[0];
-        setActiveThreadId(latest.id);
-        await loadMessagesForThread(latest.id);
-      }
     };
     initData();
   }, []);
 
-  const loadMessagesForThread = async (threadId) => {
-    try {
-      const records = await fetchThreadMessages(threadId);
-      if (!Array.isArray(records)) {
-        return;
-      }
-      const mappedMessages = records.flatMap((record) => [
-        {
-          id: `q-${record.id}`,
-          historyId: record.id,
-          role: "user",
-          text: record.question || "",
-          timestamp: formatTime(record.timestamp),
-        },
-        {
-          id: `a-${record.id}`,
-          historyId: record.id,
-          role: "assistant",
-          text: record.answer || "",
-          references: record.sources || [],
-          timestamp: formatTime(record.timestamp),
-        },
-      ]);
-      setMessages(mappedMessages);
-    } catch (err) {
-      const message = formatErrorMessage(err?.response?.data?.detail, "Failed to load thread messages.");
-      setError(message);
+  const loadMessagesForThread = (threadId) => {
+    if (threadStoreRef.current[threadId]) {
+      setMessages(threadStoreRef.current[threadId]);
     }
   };
 
@@ -220,83 +174,110 @@ function Chat() {
       return true;
     }
 
-    // 4. Download Conversation PDF
-    const downloadKeywords = [
-      "download conversation",
-      "export pdf",
-      "download pdf",
-      "save pdf",
-      "export conversation",
-      "save transcript",
-      "download transcript",
+    // 4. Voice Mode switching commands
+    if (clean.includes("concise mode") || clean.includes("switch to concise") || clean.includes("set concise")) {
+      setResponseMode("concise");
+      setVoiceActionToast("🎙️ Voice Command Executed: Switched response depth to Concise.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+    if (clean.includes("detailed mode") || clean.includes("switch to detailed") || clean.includes("set detailed")) {
+      setResponseMode("detailed");
+      setVoiceActionToast("🎙️ Voice Command Executed: Switched response depth to Detailed.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+    if (clean.includes("moderate mode") || clean.includes("switch to moderate") || clean.includes("set moderate")) {
+      setResponseMode("moderate");
+      setVoiceActionToast("🎙️ Voice Command Executed: Switched response depth to Moderate.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 5. Light / Dark Theme Switching Commands
+    if (clean.includes("dark mode") || clean.includes("enable dark mode") || clean.includes("switch to dark")) {
+      toggleDarkMode(true);
+      setVoiceActionToast("🎙️ Voice Command Executed: Enabled Dark Theme.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+    if (clean.includes("light mode") || clean.includes("enable light mode") || clean.includes("switch to light")) {
+      toggleDarkMode(false);
+      setVoiceActionToast("🎙️ Voice Command Executed: Enabled Light Theme.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 6. Stop TTS / Speaking Commands
+    const stopSpeechKeywords = ["stop speaking", "stop reading", "quiet", "silence", "stop voice", "mute"];
+    if (stopSpeechKeywords.some((kw) => clean === kw || clean.startsWith(kw))) {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      setVoiceActionToast("🎙️ Voice Command Executed: Stopped Speech Output.");
+      setTimeout(() => setVoiceActionToast(""), 4000);
+      return true;
+    }
+
+    // 7. Read Aloud / Speak Latest Answer Commands
+    const speakKeywords = [
+      "read answer",
+      "read out",
+      "read aloud",
+      "speak answer",
+      "speak latest",
+      "read latest",
+      "read out loud",
+      "read the answer",
     ];
+    if (speakKeywords.some((kw) => clean.includes(kw))) {
+      const assistantMessages = messages.filter((m) => m.role === "assistant" && m.text);
+      if (assistantMessages.length > 0) {
+        const lastAnswer = assistantMessages[assistantMessages.length - 1].text;
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          const cleanSpeech = lastAnswer
+            .replace(/#{1,6}\s+/g, "")
+            .replace(/\*\*(.*?)\*\*/g, "$1")
+            .replace(/\*(.*?)\*/g, "$1")
+            .replace(/`{1,3}(.*?)`{1,3}/g, "$1")
+            .replace(/\[\d+\]/g, "")
+            .trim();
+          const utterance = new SpeechSynthesisUtterance(cleanSpeech.substring(0, 1000));
+          utterance.rate = 1.0;
+          utterance.pitch = 1.0;
+          window.speechSynthesis.speak(utterance);
+          setVoiceActionToast("🎙️ Voice Command Executed: Reading out latest assistant response.");
+          setTimeout(() => setVoiceActionToast(""), 4000);
+        }
+      }
+      return true;
+    }
+
+    // 8. Download / Export PDF Commands
+    const downloadKeywords = ["download conversation", "export pdf", "download pdf", "export conversation", "save as pdf"];
     if (downloadKeywords.some((kw) => clean.includes(kw))) {
       handleDownloadConversation();
-      setVoiceActionToast("🎙️ Voice Command Executed: Downloading conversation transcript as PDF.");
+      setVoiceActionToast("🎙️ Voice Command Executed: Exported full conversation to PDF.");
       setTimeout(() => setVoiceActionToast(""), 4000);
       return true;
     }
 
-    // 5. Toggle Dark Mode Commands
-    const themeKeywords = ["toggle dark mode", "dark mode", "light mode", "switch theme", "change theme", "toggle theme"];
-    if (themeKeywords.some((kw) => clean.includes(kw))) {
-      toggleDarkMode();
-      setVoiceActionToast("🎙️ Voice Command Executed: Switched Theme mode.");
+    // 9. Clear All History Commands
+    const clearAllKeywords = ["delete all history", "clear all history", "delete all chats", "clear all chats", "wipe history"];
+    if (clearAllKeywords.some((kw) => clean.includes(kw))) {
+      handleDeleteAllHistory();
+      setVoiceActionToast("🎙️ Voice Command Executed: Cleared all conversation history.");
       setTimeout(() => setVoiceActionToast(""), 4000);
       return true;
     }
 
-    // 6. Response Mode Commands
-    if (clean.includes("basic mode") || clean.includes("set mode to basic") || clean.includes("simple mode")) {
-      setResponseMode("basic");
-      setVoiceActionToast("🎙️ Voice Command Executed: Switched response mode to 🌱 Basic Language.");
-      setTimeout(() => setVoiceActionToast(""), 4000);
-      return true;
-    }
-    if (clean.includes("moderate mode") || clean.includes("set mode to moderate") || clean.includes("standard mode")) {
-      setResponseMode("moderate");
-      setVoiceActionToast("🎙️ Voice Command Executed: Switched response mode to ⚖️ Moderate Level.");
-      setTimeout(() => setVoiceActionToast(""), 4000);
-      return true;
-    }
-    if (clean.includes("research mode") || clean.includes("set mode to research") || clean.includes("in-depth mode") || clean.includes("expert mode")) {
-      setResponseMode("research");
-      setVoiceActionToast("🎙️ Voice Command Executed: Switched response mode to 🔬 In-Depth Research.");
-      setTimeout(() => setVoiceActionToast(""), 4000);
-      return true;
-    }
-
-    // 7. Scroll Commands
-    if (clean.includes("scroll to top") || clean.includes("go to top") || clean.includes("top of page")) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      setVoiceActionToast("🎙️ Voice Command Executed: Scrolled to top.");
-      setTimeout(() => setVoiceActionToast(""), 4000);
-      return true;
-    }
-    if (clean.includes("scroll to bottom") || clean.includes("go to bottom") || clean.includes("bottom of page")) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      setVoiceActionToast("🎙️ Voice Command Executed: Scrolled to bottom.");
-      setTimeout(() => setVoiceActionToast(""), 4000);
-      return true;
-    }
-
-    // 8. Voice Command Help
-    const helpKeywords = ["voice help", "show commands", "help menu", "voice commands", "show voice commands", "what can i say"];
-    if (helpKeywords.some((kw) => clean.includes(kw))) {
-      setVoiceControlOpen(true);
-      setVoiceActionToast("🎙️ Voice Command Executed: Opened Voice Command Center.");
-      setTimeout(() => setVoiceActionToast(""), 4000);
-      return true;
-    }
-
-
-
-    // 10. Delete Last Message Pair
-    const deleteMsgKeywords = ["delete last message", "remove last question", "delete question", "remove question", "delete message"];
-    if (deleteMsgKeywords.some((kw) => clean.includes(kw))) {
-      const assistantMsgs = messages.filter((m) => m.role === "assistant" && m.historyId);
-      if (assistantMsgs.length > 0) {
-        const lastMsg = assistantMsgs[assistantMsgs.length - 1];
+    // 10. Delete Latest Question Commands
+    const deleteLatestKeywords = ["delete last question", "delete latest question", "delete last message", "delete latest message", "undo last message"];
+    if (deleteLatestKeywords.some((kw) => clean.includes(kw))) {
+      const assistantMessages = messages.filter((m) => m.role === "assistant" && m.historyId);
+      if (assistantMessages.length > 0) {
+        const lastMsg = assistantMessages[assistantMessages.length - 1];
         handleDeleteMessagePair(lastMsg.historyId);
         setVoiceActionToast("🎙️ Voice Command Executed: Deleted latest message pair.");
         setTimeout(() => setVoiceActionToast(""), 4000);
@@ -329,11 +310,22 @@ function Chat() {
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const currentMessages = [...messages, userMessage];
+    setMessages(currentMessages);
     setLoading(true);
 
+    // Build context history from recent Q&A turns in this active thread (In-Memory RAM)
+    const recentHistory = [];
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      if (m.role === "user" && messages[i + 1] && messages[i + 1].role === "assistant") {
+        recentHistory.push({ question: m.text, answer: messages[i + 1].text });
+      }
+    }
+    const historyPayload = recentHistory.slice(-4);
+
     try {
-      const response = await askQuestion(text, responseMode, activeThreadId);
+      const response = await askQuestion(text, responseMode, activeThreadId, historyPayload);
 
       const assistantMessage = {
         id: response.id,
@@ -342,15 +334,24 @@ function Chat() {
         text: response.answer,
         references: response.sources || [],
         images: response.images || [],
-        timestamp: new Date(response.timestamp).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        timestamp: formatTime(response.timestamp),
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
-      setActiveThreadId(response.thread_id);
-      await loadThreads();
+      const updatedMessages = [...currentMessages, assistantMessage];
+      setMessages(updatedMessages);
+
+      const threadId = response.thread_id || activeThreadId || `thread_${Date.now()}`;
+      setActiveThreadId(threadId);
+      threadStoreRef.current[threadId] = updatedMessages;
+
+      setThreads((prev) => {
+        const exists = prev.find((t) => t.id === threadId);
+        if (exists) {
+          return prev.map((t) => (t.id === threadId ? { ...t, updated_at: new Date() } : t));
+        }
+        const titleSnippet = text.length > 35 ? text.substring(0, 35) + "..." : text;
+        return [{ id: threadId, title: titleSnippet, created_at: new Date(), updated_at: new Date() }, ...prev];
+      });
     } catch (err) {
       const message = formatErrorMessage(err?.response?.data?.detail, err?.message ? `Unable to reach assistant backend (${err.message}).` : "Unable to get response from assistant.");
       setError(message);
@@ -359,86 +360,67 @@ function Chat() {
     }
   };
 
-  const handleSelectThread = async (threadId) => {
+  const handleSelectThread = (threadId) => {
+    if (activeThreadId) {
+      threadStoreRef.current[activeThreadId] = messages;
+    }
     setActiveThreadId(threadId);
     setMobileSidebarOpen(false);
-    await loadMessagesForThread(threadId);
+    loadMessagesForThread(threadId);
   };
 
-  const handleRenameThread = async (threadId, newTitle) => {
-    try {
-      await renameThread(threadId, newTitle);
-      await loadThreads();
-    } catch (err) {
-      const message = formatErrorMessage(err?.response?.data?.detail, "Failed to rename thread.");
-      setError(message);
-    }
+  const handleRenameThread = (threadId, newTitle) => {
+    setThreads((prev) =>
+      prev.map((t) => (t.id === threadId ? { ...t, title: newTitle.trim() } : t))
+    );
   };
 
-  const handleDeleteMessagePair = async (historyId, messageId) => {
-    try {
-      if (historyId) {
-        await deleteHistoryItem(historyId);
-      }
-      setMessages((prev) =>
-        prev.filter((m) => {
-          if (historyId && m.historyId === historyId) return false;
-          if (m.id === messageId) return false;
-          if (messageId && typeof messageId === "string") {
-            if (messageId.startsWith("q-") && m.id === `a-${messageId.replace("q-", "")}`) return false;
-            if (messageId.startsWith("a-") && m.id === `q-${messageId.replace("a-", "")}`) return false;
-          }
-          return true;
-        })
-      );
-      await loadThreads();
-    } catch (err) {
-      const message = formatErrorMessage(err?.response?.data?.detail, "Failed to delete question.");
-      setError(message);
-    }
-  };
-
-  const handleDeleteThread = async (threadId) => {
-    try {
-      await deleteThread(threadId);
-      const updated = await loadThreads();
-
-      if (activeThreadId === threadId) {
-        if (updated.length > 0) {
-          setActiveThreadId(updated[0].id);
-          await loadMessagesForThread(updated[0].id);
-        } else {
-          handleNewChat();
+  const handleDeleteMessagePair = (historyId, messageId) => {
+    setMessages((prev) => {
+      const updated = prev.filter((m) => {
+        if (historyId && m.historyId === historyId) return false;
+        if (m.id === messageId) return false;
+        if (messageId && typeof messageId === "string") {
+          if (messageId.startsWith("q-") && m.id === `a-${messageId.replace("q-", "")}`) return false;
+          if (messageId.startsWith("a-") && m.id === `q-${messageId.replace("a-", "")}`) return false;
         }
+        return true;
+      });
+      if (activeThreadId) {
+        threadStoreRef.current[activeThreadId] = updated;
       }
-    } catch (err) {
-      const message = formatErrorMessage(err?.response?.data?.detail, "Failed to delete thread.");
-      setError(message);
+      return updated;
+    });
+  };
+
+  const handleDeleteThread = (threadId) => {
+    delete threadStoreRef.current[threadId];
+    setThreads((prev) => prev.filter((t) => t.id !== threadId));
+
+    if (activeThreadId === threadId) {
+      handleNewChat();
     }
   };
 
-  const handleDeleteAllHistory = async () => {
-    try {
-      await deleteAllHistory();
-      setThreads([]);
-      setActiveThreadId(null);
-      setMessages([
-        {
-          id: "welcome-1",
-          role: "assistant",
-          text: "Welcome to the Meteorological Training Institute Knowledge Repository. You may query official training literature, weather observation manuals, and meteorological documentations.",
-          references: ["MTI Knowledge Base Index"],
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
-    } catch (err) {
-      const message = formatErrorMessage(err?.response?.data?.detail, "Failed to clear all chat history.");
-      setError(message);
-      throw err;
-    }
+  const handleDeleteAllHistory = () => {
+    threadStoreRef.current = {};
+    setThreads([]);
+    setActiveThreadId(null);
+    setMessages([
+      {
+        id: "welcome-1",
+        role: "assistant",
+        text: "Welcome to the Meteorological Training Institute Knowledge Repository. You may query official training literature, weather observation manuals, and meteorological documentations.",
+        references: ["MTI Knowledge Base Index"],
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
   };
 
   const handleNewChat = () => {
+    if (activeThreadId) {
+      threadStoreRef.current[activeThreadId] = messages;
+    }
     setError("");
     setActiveThreadId(null);
     setMessages([
@@ -470,12 +452,22 @@ function Chat() {
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setMessages([...previousMessages, updatedUserMessage]);
+    const currentMessages = [...previousMessages, updatedUserMessage];
+    setMessages(currentMessages);
     setResponseMode(newMode);
     setLoading(true);
 
+    const recentHistory = [];
+    for (let i = 0; i < previousMessages.length; i++) {
+      const m = previousMessages[i];
+      if (m.role === "user" && previousMessages[i + 1] && previousMessages[i + 1].role === "assistant") {
+        recentHistory.push({ question: m.text, answer: previousMessages[i + 1].text });
+      }
+    }
+    const historyPayload = recentHistory.slice(-4);
+
     try {
-      const response = await askQuestion(newText, newMode, activeThreadId);
+      const response = await askQuestion(newText, newMode, activeThreadId, historyPayload);
 
       const assistantMessage = {
         id: response.id,
@@ -486,9 +478,11 @@ function Chat() {
         timestamp: formatTime(response.timestamp),
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
-      setActiveThreadId(response.thread_id);
-      await loadThreads();
+      const updated = [...currentMessages, assistantMessage];
+      setMessages(updated);
+      const threadId = response.thread_id || activeThreadId || `thread_${Date.now()}`;
+      setActiveThreadId(threadId);
+      threadStoreRef.current[threadId] = updated;
     } catch (err) {
       const message = formatErrorMessage(err?.response?.data?.detail, err?.message ? `Unable to reach assistant backend (${err.message}).` : "Unable to get response from assistant.");
       setError(message);
@@ -497,8 +491,9 @@ function Chat() {
     }
   };
 
-  const handleResetSession = async () => {
+  const handleResetSession = () => {
     clearSession();
+    threadStoreRef.current = {};
     setThreads([]);
     setActiveThreadId(null);
     setMessages([
@@ -510,8 +505,6 @@ function Chat() {
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
-    await getOrInitAnonymousSession();
-    await loadThreads();
   };
 
   return (

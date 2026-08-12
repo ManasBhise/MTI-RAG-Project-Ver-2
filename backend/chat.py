@@ -4,27 +4,30 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 
 try:
 	from .auth import get_current_user
-	from .database import get_db
-	from .models import ChatHistory, ChatThread, User
+	from .models import User
 	from .rag_service import generate_answer
 except ImportError:
 	from auth import get_current_user
-	from database import get_db
-	from models import ChatHistory, ChatThread, User
+	from models import User
 	from rag_service import generate_answer
 
 
 router = APIRouter(tags=["Chat"])
 
 
+class ChatHistoryTurn(BaseModel):
+	question: str
+	answer: str
+
+
 class ChatRequest(BaseModel):
 	question: str = Field(min_length=1, max_length=4000)
 	mode: str = Field(default="moderate", max_length=50)
 	thread_id: str | None = Field(default=None)
+	chat_history: list[ChatHistoryTurn] = []
 
 
 class ImageItem(BaseModel):
@@ -41,7 +44,6 @@ class ChatResponse(BaseModel):
 	sources: list[str]
 	images: list[ImageItem] = []
 	timestamp: datetime
-
 
 
 class TranslateRequest(BaseModel):
@@ -79,114 +81,60 @@ class DeleteResponse(BaseModel):
 
 
 @router.get("/threads", response_model=list[ThreadItem])
-def get_threads(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-	threads = (
-		db.query(ChatThread)
-		.filter(ChatThread.user_id == current_user.id)
-		.order_by(ChatThread.updated_at.desc())
-		.all()
-	)
-	return [
-		{
-			"id": t.id,
-			"title": t.title,
-			"created_at": t.created_at,
-			"updated_at": t.updated_at,
-		}
-		for t in threads
-	]
+def get_threads(current_user: User = Depends(get_current_user)):
+	"""Zero-storage mode: Session threads are maintained in client-side memory."""
+	return []
 
 
 @router.get("/threads/{thread_id}/messages", response_model=list[HistoryItem])
 def get_thread_messages(
 	thread_id: str,
-	db: Session = Depends(get_db),
 	current_user: User = Depends(get_current_user),
 ):
-	thread = db.query(ChatThread).filter(ChatThread.id == thread_id, ChatThread.user_id == current_user.id).first()
-	if not thread:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Thread not found")
-
-	return [
-		{
-			"id": row.id,
-			"thread_id": row.thread_id,
-			"question": row.question,
-			"answer": row.answer,
-			"sources": json.loads(row.sources) if row.sources else [],
-			"timestamp": row.created_at,
-		}
-		for row in thread.messages
-	]
+	"""Zero-storage mode: Thread messages are maintained in client-side memory."""
+	return []
 
 
 @router.put("/threads/{thread_id}", response_model=ThreadItem)
 def update_thread(
 	thread_id: str,
 	payload: UpdateThreadRequest,
-	db: Session = Depends(get_db),
 	current_user: User = Depends(get_current_user),
 ):
-	thread = db.query(ChatThread).filter(ChatThread.id == thread_id, ChatThread.user_id == current_user.id).first()
-	if not thread:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Thread not found")
-
-	thread.title = payload.title.strip()
-	thread.updated_at = datetime.utcnow()
-	db.commit()
-	db.refresh(thread)
-
+	now = datetime.utcnow()
 	return {
-		"id": thread.id,
-		"title": thread.title,
-		"created_at": thread.created_at,
-		"updated_at": thread.updated_at,
+		"id": thread_id,
+		"title": payload.title.strip(),
+		"created_at": now,
+		"updated_at": now,
 	}
 
 
 @router.delete("/threads/{thread_id}", response_model=DeleteResponse)
 def delete_thread(
 	thread_id: str,
-	db: Session = Depends(get_db),
 	current_user: User = Depends(get_current_user),
 ):
-	thread = db.query(ChatThread).filter(ChatThread.id == thread_id, ChatThread.user_id == current_user.id).first()
-	if not thread:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Thread not found")
-
-	db.delete(thread)
-	db.commit()
-	return {"message": "Thread deleted successfully"}
+	return {"message": "Thread cleared"}
 
 
 @router.post("/chat", response_model=ChatResponse)
-def chat(payload: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def chat(payload: ChatRequest, current_user: User = Depends(get_current_user)):
+	"""
+	Process chat queries in-memory with Zero Server Storage / Zero Data Retention.
+	Conversational context is passed directly from client-side memory without saving chats to disk.
+	"""
 	question_text = payload.question.strip()
-	thread = None
+	thread_id = payload.thread_id or f"thread_{uuid.uuid4().hex[:12]}"
 
-	if payload.thread_id:
-		thread = db.query(ChatThread).filter(ChatThread.id == payload.thread_id, ChatThread.user_id == current_user.id).first()
-
-	if not thread:
-		title_snippet = question_text[:35] + ("..." if len(question_text) > 35 else "")
-		thread = ChatThread(
-			id=f"thread_{uuid.uuid4().hex[:12]}",
-			user_id=current_user.id,
-			title=title_snippet,
-		)
-		db.add(thread)
-		db.commit()
-		db.refresh(thread)
-	# Gather past turns in this thread for context memory
-	history_turns = []
-	if thread and thread.messages:
-		history_turns = [
-			{"question": msg.question, "answer": msg.answer}
-			for msg in thread.messages
-		]
+	# Extract recent turns from client payload memory
+	history_turns = [
+		{"question": turn.question, "answer": turn.answer}
+		for turn in payload.chat_history[-4:]
+	]
 
 	user_profile = {
-		"name": current_user.name,
+		"name": current_user.name if current_user else "Meteorologist",
 		"role": getattr(current_user, "role", "Trainee Meteorologist") or "Trainee Meteorologist",
 		"organization": getattr(current_user, "organization", "IMD") or "",
 		"response_tone": getattr(current_user, "response_tone", "moderate") or "moderate",
@@ -206,25 +154,17 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db), current_user: User
 	sources = result.get("sources", []) or []
 	images = result.get("images", []) or []
 
-	chat_entry = ChatHistory(
-		user_id=current_user.id,
-		thread_id=thread.id,
-		question=question_text,
-		answer=answer,
-		sources=json.dumps([str(item) for item in sources]),
-	)
-
-	db.add(chat_entry)
-	db.commit()
-	db.refresh(chat_entry)
+	# Stateless: Generate in-memory response without writing to database or disk
+	msg_id = int(datetime.utcnow().timestamp() * 1000)
+	now = datetime.utcnow()
 
 	return {
-		"id": chat_entry.id,
-		"thread_id": thread.id,
-		"answer": chat_entry.answer,
+		"id": msg_id,
+		"thread_id": thread_id,
+		"answer": answer,
 		"sources": sources,
 		"images": images,
-		"timestamp": chat_entry.created_at,
+		"timestamp": now,
 	}
 
 
@@ -233,7 +173,7 @@ def translate_response(
 	payload: TranslateRequest,
 	current_user: User = Depends(get_current_user),
 ):
-	"""Translate assistant response to Hindi (or target language) using LLM while preserving markdown layout."""
+	"""Translate assistant response to Hindi using LLM in RAM while preserving markdown layout."""
 	text_to_translate = payload.text.strip()
 	target_lang = payload.target_language.strip().lower()
 
@@ -269,7 +209,6 @@ def translate_response(
 			"language": target_lang,
 		}
 	except Exception as exc:
-		logger.warning("LLM translation failed: %s", exc)
 		raise HTTPException(
 			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
 			detail=f"Translation failed: {exc}",
@@ -277,48 +216,15 @@ def translate_response(
 
 
 @router.get("/history", response_model=list[HistoryItem])
-def get_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-	rows = (
-		db.query(ChatHistory)
-		.filter(ChatHistory.user_id == current_user.id)
-		.order_by(ChatHistory.created_at.desc())
-		.all()
-	)
-
-	return [
-		{
-			"id": row.id,
-			"thread_id": row.thread_id,
-			"question": row.question,
-			"answer": row.answer,
-			"sources": json.loads(row.sources) if row.sources else [],
-			"timestamp": row.created_at,
-		}
-		for row in rows
-	]
+def get_history(current_user: User = Depends(get_current_user)):
+	return []
 
 
 @router.delete("/history", response_model=DeleteResponse)
-def delete_all_history(
-	db: Session = Depends(get_db),
-	current_user: User = Depends(get_current_user),
-):
-	db.query(ChatHistory).filter(ChatHistory.user_id == current_user.id).delete(synchronize_session=False)
-	db.query(ChatThread).filter(ChatThread.user_id == current_user.id).delete(synchronize_session=False)
-	db.commit()
-	return {"message": "All threads and chat history deleted"}
+def delete_all_history(current_user: User = Depends(get_current_user)):
+	return {"message": "All history cleared"}
 
 
 @router.delete("/history/{history_id}", response_model=DeleteResponse)
-def delete_history(
-	history_id: int,
-	db: Session = Depends(get_db),
-	current_user: User = Depends(get_current_user),
-):
-	row = db.query(ChatHistory).filter(ChatHistory.id == history_id, ChatHistory.user_id == current_user.id).first()
-	if not row:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="History record not found")
-
-	db.delete(row)
-	db.commit()
-	return {"message": "History deleted"}
+def delete_history(history_id: int, current_user: User = Depends(get_current_user)):
+	return {"message": "History entry cleared"}
