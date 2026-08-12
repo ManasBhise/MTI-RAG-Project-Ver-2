@@ -36,7 +36,7 @@ function ShieldLockIcon() {
 
 function KeyIcon() {
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9 3 14v7h7l5-5 1.5 1.5L18 16l-1.5-1.5L18 13l1.5 1.5 2.5-2.5a3.5 3.5 0 0 0-1-6.5z"></path>
     </svg>
   );
@@ -44,7 +44,7 @@ function KeyIcon() {
 
 function MailIcon() {
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
       <polyline points="22,6 12,13 2,6"></polyline>
     </svg>
@@ -109,29 +109,27 @@ function AuthModal({ open, onClose, onSuccess }) {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: "22px",
-          bgcolor: darkMode ? "rgba(18, 24, 38, 0.95)" : "#ffffff",
-          backdropFilter: "blur(24px)",
+          borderRadius: "24px",
+          bgcolor: darkMode ? "rgba(15, 23, 42, 0.96)" : "#ffffff",
+          backdropFilter: "blur(28px)",
           border: "1px solid",
-          borderColor: darkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(37, 99, 235, 0.15)",
-          backgroundImage: darkMode
-            ? "radial-gradient(ellipse at 50% 0%, rgba(37, 99, 235, 0.18) 0%, rgba(18, 24, 38, 0) 70%)"
-            : "radial-gradient(ellipse at 50% 0%, rgba(37, 99, 235, 0.08) 0%, rgba(255, 255, 255, 0) 70%)",
+          borderColor: darkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(37, 99, 235, 0.16)",
           boxShadow: darkMode
-            ? "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(37, 99, 235, 0.25)"
-            : "0 24px 60px rgba(37, 99, 235, 0.14), 0 4px 16px rgba(0, 0, 0, 0.04)",
+            ? "0 28px 64px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(37, 99, 235, 0.25)"
+            : "0 28px 64px rgba(37, 99, 235, 0.16), 0 8px 24px rgba(0, 0, 0, 0.05)",
           overflow: "hidden",
           p: { xs: 3, sm: 4 },
+          position: "relative",
         },
       }}
     >
-      {/* Top Bar with Close Button */}
+      {/* Top Header Bar */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Box
             sx={{
-              width: 8,
-              height: 8,
+              width: 7,
+              height: 7,
               borderRadius: "50%",
               bgcolor: "#22c55e",
               boxShadow: "0 0 8px #22c55e",
@@ -147,7 +145,7 @@ function AuthModal({ open, onClose, onSuccess }) {
               color: darkMode ? "#93c5fd" : "#2563eb",
             }}
           >
-            Restricted Knowledge Portal
+            Officer Verification Portal
           </Typography>
         </Box>
         <IconButton
@@ -171,21 +169,20 @@ function AuthModal({ open, onClose, onSuccess }) {
       <Box sx={{ textAlign: "center", mb: 3 }}>
         <Box
           sx={{
-            position: "relative",
-            width: 80,
-            height: 80,
+            width: 76,
+            height: 76,
             mx: "auto",
-            mb: 2,
+            mb: 1.75,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            borderRadius: "22px",
+            borderRadius: "20px",
             background: darkMode
-              ? "linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(30, 58, 138, 0.4) 100%)"
-              : "linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(219, 234, 254, 0.7) 100%)",
+              ? "linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(30, 58, 138, 0.5) 100%)"
+              : "linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(219, 234, 254, 0.85) 100%)",
             border: "1px solid",
-            borderColor: darkMode ? "rgba(59, 130, 246, 0.3)" : "rgba(37, 99, 235, 0.2)",
-            boxShadow: "0 8px 24px rgba(37, 99, 235, 0.15)",
+            borderColor: darkMode ? "rgba(59, 130, 246, 0.35)" : "rgba(37, 99, 235, 0.25)",
+            boxShadow: "0 8px 24px rgba(37, 99, 235, 0.18)",
           }}
         >
           <Box
@@ -193,10 +190,10 @@ function AuthModal({ open, onClose, onSuccess }) {
             src={imdLogo}
             alt="IMD Official Emblem"
             sx={{
-              width: 58,
-              height: 58,
+              width: 54,
+              height: 54,
               objectFit: "contain",
-              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))",
+              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.12))",
             }}
           />
         </Box>
@@ -208,11 +205,11 @@ function AuthModal({ open, onClose, onSuccess }) {
             fontWeight: 800,
             fontSize: "1.25rem",
             color: "text.primary",
-            letterSpacing: "-0.01em",
-            lineHeight: 1.2,
+            letterSpacing: "-0.015em",
+            lineHeight: 1.25,
           }}
         >
-          Officer Authorization
+          MTI Official Authorization
         </Typography>
 
         <Typography
@@ -226,22 +223,22 @@ function AuthModal({ open, onClose, onSuccess }) {
             fontWeight: 500,
           }}
         >
-          India Meteorological Department • MTI Pune
+          India Meteorological Department • Meteorological Training Institute
         </Typography>
 
         <Box sx={{ display: "flex", justifyContent: "center", mt: 1.5 }}>
           <Chip
             icon={<ShieldLockIcon />}
-            label="Upload Authorization Required"
+            label="RESTRICTED ACCESS • LEVEL 2"
             size="small"
             sx={{
               height: 22,
-              fontSize: "0.65rem",
-              fontWeight: 700,
-              bgcolor: darkMode ? "rgba(37, 99, 235, 0.2)" : "rgba(37, 99, 235, 0.08)",
+              fontSize: "0.625rem",
+              fontWeight: 750,
+              bgcolor: darkMode ? "rgba(37, 99, 235, 0.22)" : "rgba(37, 99, 235, 0.08)",
               color: darkMode ? "#93c5fd" : "#1d4ed8",
               border: "1px solid",
-              borderColor: darkMode ? "rgba(59, 130, 246, 0.4)" : "rgba(37, 99, 235, 0.25)",
+              borderColor: darkMode ? "rgba(59, 130, 246, 0.4)" : "rgba(37, 99, 235, 0.28)",
               borderRadius: "6px",
               px: 0.5,
               "& .MuiChip-icon": {
@@ -275,7 +272,16 @@ function AuthModal({ open, onClose, onSuccess }) {
       {/* Authorization Form */}
       <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <Box>
-          <Typography variant="caption" sx={{ fontWeight: 650, fontSize: "0.75rem", color: "text.secondary", mb: 0.75, display: "block" }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 650,
+              fontSize: "0.75rem",
+              color: "text.secondary",
+              mb: 0.75,
+              display: "block",
+            }}
+          >
             Official Email Address
           </Typography>
           <TextField
@@ -290,19 +296,20 @@ function AuthModal({ open, onClose, onSuccess }) {
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: "10px",
-                bgcolor: darkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.02)",
+                bgcolor: darkMode ? "rgba(255, 255, 255, 0.04)" : "#f8fafc",
                 transition: "all 0.2s ease-in-out",
                 "&:hover": {
                   borderColor: "primary.main",
                 },
                 "&.Mui-focused": {
-                  boxShadow: "0 0 0 3px rgba(37, 99, 235, 0.18)",
+                  boxShadow: "0 0 0 3px rgba(37, 99, 235, 0.2)",
+                  bgcolor: darkMode ? "rgba(255, 255, 255, 0.06)" : "#ffffff",
                 },
               },
             }}
             InputProps={{
               startAdornment: (
-                <InputAdornment position="start" sx={{ color: "text.secondary", mr: 1 }}>
+                <InputAdornment position="start" sx={{ color: "text.secondary", mr: 0.75 }}>
                   <MailIcon />
                 </InputAdornment>
               ),
@@ -311,8 +318,17 @@ function AuthModal({ open, onClose, onSuccess }) {
         </Box>
 
         <Box>
-          <Typography variant="caption" sx={{ fontWeight: 650, fontSize: "0.75rem", color: "text.secondary", mb: 0.75, display: "block" }}>
-            Security Key / Password
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 650,
+              fontSize: "0.75rem",
+              color: "text.secondary",
+              mb: 0.75,
+              display: "block",
+            }}
+          >
+            Password / Access Key
           </Typography>
           <TextField
             placeholder="••••••••••••"
@@ -325,19 +341,20 @@ function AuthModal({ open, onClose, onSuccess }) {
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: "10px",
-                bgcolor: darkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.02)",
+                bgcolor: darkMode ? "rgba(255, 255, 255, 0.04)" : "#f8fafc",
                 transition: "all 0.2s ease-in-out",
                 "&:hover": {
                   borderColor: "primary.main",
                 },
                 "&.Mui-focused": {
-                  boxShadow: "0 0 0 3px rgba(37, 99, 235, 0.18)",
+                  boxShadow: "0 0 0 3px rgba(37, 99, 235, 0.2)",
+                  bgcolor: darkMode ? "rgba(255, 255, 255, 0.06)" : "#ffffff",
                 },
               },
             }}
             InputProps={{
               startAdornment: (
-                <InputAdornment position="start" sx={{ color: "text.secondary", mr: 1 }}>
+                <InputAdornment position="start" sx={{ color: "text.secondary", mr: 0.75 }}>
                   <KeyIcon />
                 </InputAdornment>
               ),
@@ -364,8 +381,8 @@ function AuthModal({ open, onClose, onSuccess }) {
           disabled={loading}
           startIcon={loading ? null : <ShieldLockIcon />}
           sx={{
-            mt: 1,
-            py: 1.2,
+            mt: 0.75,
+            py: 1.25,
             borderRadius: "12px",
             fontSize: "0.875rem",
             fontWeight: 700,
@@ -387,12 +404,12 @@ function AuthModal({ open, onClose, onSuccess }) {
         {/* Security Footer Note */}
         <Box
           sx={{
-            mt: 1.5,
+            mt: 1,
             p: 1.25,
-            borderRadius: "8px",
-            bgcolor: darkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)",
+            borderRadius: "10px",
+            bgcolor: darkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(37, 99, 235, 0.03)",
             border: "1px solid",
-            borderColor: "divider",
+            borderColor: darkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(37, 99, 235, 0.12)",
             textAlign: "center",
           }}
         >
@@ -400,12 +417,12 @@ function AuthModal({ open, onClose, onSuccess }) {
             variant="caption"
             color="text.secondary"
             sx={{
-              fontSize: "0.7rem",
-              lineHeight: 1.3,
+              fontSize: "0.715rem",
+              lineHeight: 1.35,
               display: "block",
             }}
           >
-            🔒 <strong>256-Bit SSL Encrypted Verification</strong>. Access to modify the active meteorological RAG corpus is restricted to accredited IMD faculty.
+            🔒 <strong>256-Bit SSL Encrypted</strong>. Knowledge base uploads are restricted to authorized MTI faculty and meteorological officers.
           </Typography>
         </Box>
       </Box>
