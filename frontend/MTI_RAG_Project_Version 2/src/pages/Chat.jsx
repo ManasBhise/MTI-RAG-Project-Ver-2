@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Box, Card, CardActionArea, CardContent, Chip, Grid, Stack, Typography } from "@mui/material";
+import { Alert, Box, Stack } from "@mui/material";
 import Navbar from "../Components/Navbar";
 import Message from "../Components/Message";
 import ChatInput from "../Components/ChatInput";
@@ -14,45 +14,6 @@ import {
   getStoredUser,
 } from "../services/api";
 import { formatErrorMessage } from "../utils/formatError";
-
-const QUICK_STARTERS = [
-  {
-    category: "Aviation Weather",
-    icon: "🛫",
-    title: "METAR & TAF Codes",
-    prompt: "Explain METAR and TAF meteorological codes and aviation weather hazards.",
-  },
-  {
-    category: "Atmospheric Science",
-    icon: "🌡️",
-    title: "Adiabatic Lapse Rates",
-    prompt: "What is Dry Adiabatic Lapse Rate (DALR) and Saturated Adiabatic Lapse Rate?",
-  },
-  {
-    category: "Radar & Satellite",
-    icon: "🛰️",
-    title: "Doppler Radar Tracking",
-    prompt: "How does Doppler Weather Radar track severe convective storms and cyclones?",
-  },
-  {
-    category: "Tropical Weather",
-    icon: "🌀",
-    title: "Tropical Cyclones",
-    prompt: "Explain the formation and structure of Tropical Cyclones in the North Indian Ocean.",
-  },
-  {
-    category: "NWP & Forecasting",
-    icon: "📊",
-    title: "Numerical Models (NWP)",
-    prompt: "What is Numerical Weather Prediction (NWP) and how do atmospheric models operate?",
-  },
-  {
-    category: "Marine Science",
-    icon: "🌊",
-    title: "Oceanography & SST",
-    prompt: "What are ocean currents, SST, and their impact on Indian monsoon patterns?",
-  },
-];
 
 function Chat() {
   const messagesEndRef = useRef(null);
@@ -411,8 +372,6 @@ function Chat() {
     }
   };
 
-  const isInitialState = messages.length <= 1;
-
   return (
     <Box
       sx={{
@@ -484,49 +443,6 @@ function Chat() {
                 </div>
               );
             })}
-
-            {/* Quick Knowledge Starters on Welcome View */}
-            {isInitialState && (
-              <Box sx={{ pt: 1, pb: 2 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", fontSize: "0.725rem", display: "block", mb: 1.5 }}>
-                  Suggested Meteorological Topics
-                </Typography>
-                <Grid container spacing={1.5}>
-                  {QUICK_STARTERS.map((item, idx) => (
-                    <Grid item xs={12} sm={6} md={4} key={idx}>
-                      <Card
-                        variant="outlined"
-                        sx={{
-                          borderRadius: "10px",
-                          borderColor: "divider",
-                          bgcolor: "background.paper",
-                          transition: "all 0.2s ease-in-out",
-                          "&:hover": {
-                            borderColor: "primary.main",
-                            transform: "translateY(-2px)",
-                            boxShadow: "0 4px 12px rgba(37, 99, 235, 0.12)",
-                          },
-                        }}
-                      >
-                        <CardActionArea onClick={() => handleSend(item.prompt)} sx={{ p: 1.5, height: "100%" }}>
-                          <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                              <Typography sx={{ fontSize: "1.1rem" }}>{item.icon}</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.835rem", color: "text.primary" }}>
-                                {item.title}
-                              </Typography>
-                            </Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.725rem", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                              {item.prompt}
-                            </Typography>
-                          </CardContent>
-                        </CardActionArea>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            )}
 
             {loading && (
               <Message
