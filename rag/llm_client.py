@@ -108,7 +108,7 @@ def _call_gemini_via_rest(api_key: str, model_name: str, messages: list[dict], t
 		}
 
 	headers = {"Content-Type": "application/json"}
-	resp = requests.post(url, headers=headers, json=payload, timeout=30)
+	resp = requests.post(url, headers=headers, json=payload, timeout=10)
 	resp.raise_for_status()
 
 	data = resp.json()
@@ -141,7 +141,11 @@ def _call_gemini(api_key: str, model_name: str, messages: list[dict], temperatur
 					return text
 			except Exception as rest_err:
 				last_err = rest_err
-				logger.warning("Gemini model %s failed (REST: %s). Trying next Gemini model...", target_model, rest_err)
+				err_str = str(rest_err)
+				logger.warning("Gemini model %s failed (REST: %s).", target_model, rest_err)
+				# If key is invalid (400, 401, 403, 404), fail fast instead of looping through all models
+				if any(code in err_str for code in ["400", "401", "403", "404", "API_KEY"]):
+					break
 				continue
 
 	if last_err:
@@ -231,11 +235,11 @@ def call_llm(
 	openai_key = (os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY or "").strip()
 	openai_model = os.getenv("OPENAI_MODEL") or OPENAI_MODEL or "gpt-4o-mini"
 
-	primary = (preferred_provider or os.getenv("PRIMARY_LLM_PROVIDER") or PRIMARY_LLM_PROVIDER or "gemini").lower()
+	primary = (preferred_provider or os.getenv("PRIMARY_LLM_PROVIDER") or PRIMARY_LLM_PROVIDER or "groq").lower()
 
 	# Build provider order
 	order = [primary]
-	for p in ["gemini", "groq", "openai"]:
+	for p in ["groq", "gemini", "openai"]:
 		if p not in order:
 			order.append(p)
 

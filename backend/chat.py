@@ -261,16 +261,19 @@ def translate_response(
 		]
 
 		translated_text = call_llm(messages, temperature=0.1, max_tokens=2000)
+		if not translated_text:
+			raise ValueError("Empty translation received from LLM")
+
 		return {
-			"translated_text": translated_text or text_to_translate,
+			"translated_text": translated_text,
 			"language": target_lang,
 		}
 	except Exception as exc:
 		logger.warning("LLM translation failed: %s", exc)
-		return {
-			"translated_text": f"### 1. अनुवाद ({lang_name if 'lang_name' in locals() else target_lang.capitalize()})\n\n*(नोट: AI अनुवाद सेवा वर्तमान में अनुपलब्ध है। मूल पाठ नीचे दिया गया है:)*\n\n{text_to_translate}",
-			"language": target_lang,
-		}
+		raise HTTPException(
+			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+			detail=f"Translation failed: {exc}",
+		)
 
 
 @router.get("/history", response_model=list[HistoryItem])
