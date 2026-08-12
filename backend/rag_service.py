@@ -91,9 +91,18 @@ def _is_meteorological_query(question: str) -> bool:
 		return True
 
 
-def _fallback_llm_answer(question: str, user_profile: dict | None = None) -> dict | None:
+def _fallback_llm_answer(
+	question: str,
+	chat_history: list[dict] | None = None,
+	user_profile: dict | None = None,
+) -> dict | None:
 	"""Fallback LLM answer generator when full local vector store pipeline is unavailable."""
-	if not _is_meteorological_query(question):
+	query_to_check = question
+	if chat_history and len(chat_history) > 0:
+		last_q = (chat_history[-1].get("question") or "").strip()
+		query_to_check = f"{last_q} {question}"
+
+	if not _is_meteorological_query(query_to_check):
 		return {
 			"answer": "I am specialized in MTI meteorological training literature, atmospheric science, and weather forecasting. I cannot assist with non-meteorological or general topics.",
 			"sources": [],
@@ -105,21 +114,25 @@ def _fallback_llm_answer(question: str, user_profile: dict | None = None) -> dic
 
 		system_prompt = (
 			"You are the official MTI Knowledge Assistant for the Meteorological Training Institute (India Meteorological Department - IMD).\n"
-			"You specialize in meteorological training literature, atmospheric physics, weather forecasting, aeronautical/aviation meteorology, numerical weather prediction (NWP), radar/satellite remote sensing, and atmospheric sciences.\n\n"
+			"You specialize in meteorological training literature, atmospheric physics, weather forecasting, aeronautical/aviation meteorology, numerical weather prediction (NWP), radar/satellite remote sensing, oceanography, marine meteorology, and atmospheric sciences.\n\n"
 			"SCOPE & DOMAIN GUIDELINES:\n"
-			"1. Answer questions thoroughly regarding meteorology, atmospheric science, climate, weather forecasting, aviation & aeronautical weather (e.g. METAR, TAF, flight hazards, wind shear, turbulence, icing, aerodrome operations), satellite & radar meteorology, agrometeorology, marine/cyclone forecasting, and official MTI/IMD training courseware.\n"
-			"2. When asked about aviation, aerospace, instruments, flight conditions, atmospheric layers, or physical phenomena, provide a rich, structured, and informative answer highlighting its principles and its critical connection to aeronautical meteorology and flight safety.\n"
-			"3. Only if the user asks a completely unrelated request (such as writing generic programming scripts/addition calculators, Bollywood/pop culture trivia, political elections/figures, sports match scores, stock trading, cooking recipes, medical diagnoses, or tech job interview tips):\n"
-			"   - Politely decline with: \"I am specialized in MTI meteorological training literature, atmospheric science, and weather forecasting. I cannot assist with non-meteorological or general topics.\"\n"
-			"   - Do NOT provide code or tips for non-meteorological requests.\n\n"
-			"FOR VALID DOMAIN QUESTIONS:\n"
-			"Organize your answer into clear sections with bold headers (e.g. ### 1. Overview & Definition, ### 2. Physical & Meteorological Principles, ### 3. Aviation & Operational Applications, ### 4. Key Takeaways)."
+			"1. Answer questions thoroughly regarding meteorology, atmospheric science, climate, weather forecasting, aviation weather, satellite/radar meteorology, agrometeorology, oceanography, and official MTI/IMD training courseware.\n"
+			"2. CONVERSATIONAL MEMORY & FOLLOW-UP INSTRUCTION: The user is engaged in an ongoing conversation. Refer directly to the preceding conversation turns in the chat history to understand and fulfill follow-up requests (such as 'Give me 10 questions on this topic', 'Explain its formula', 'Summarize what you just said').\n"
+			"3. Organize your answer into clear, well-structured markdown sections with bold headers."
 		)
 
-		messages = [
-			{"role": "system", "content": system_prompt},
-			{"role": "user", "content": question.strip()},
-		]
+		messages = [{"role": "system", "content": system_prompt}]
+
+		if chat_history:
+			for turn in chat_history[-4:]:
+				q = (turn.get("question") or "").strip()
+				a = (turn.get("answer") or "").strip()
+				if q:
+					messages.append({"role": "user", "content": q[:1000]})
+				if a:
+					messages.append({"role": "assistant", "content": a[:2000]})
+
+		messages.append({"role": "user", "content": question.strip()})
 
 		answer_text = call_llm(messages, temperature=0.1, max_tokens=1500)
 
@@ -161,9 +174,9 @@ def generate_answer(
 			logger.exception("RAG pipeline call failed: %s", exc)
 
 	# Try fallback LLM generation if RAG pipeline call failed
-	fallback_res = _fallback_llm_answer(question, user_profile=user_profile)
+	fallback_res = _fallback_llm_answer(question, chat_history=chat_history, user_profile=user_profile)
 	if fallback_res:
-		return fallback_res
+		return _normalize_result(fallback_res)
 
 	return {
 		"answer": "I can help with MTI training questions. Please ensure GROQ_API_KEY or RAG pipeline dependencies are properly configured in your deployment settings.",

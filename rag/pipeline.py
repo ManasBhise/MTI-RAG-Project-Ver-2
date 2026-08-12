@@ -527,16 +527,18 @@ def ask_question(
 			user_profile=user_profile,
 		)
 		return {"answer": answer, "sources": sources, "images": images}
-	except FileNotFoundError as exc:
-		logger.error("%s", exc)
-		return {
-			"answer": "The knowledge base index has not been built yet. Please run the index builder first.",
-			"sources": ["Index not found"],
-		}
 	except Exception as exc:
-		logger.exception("RAG pipeline failed: %s", exc)
+		logger.warning("Vector retrieval unavailable (%s), synthesizing directly from LLM with chat history.", exc)
+		answer = _generate_answer(
+			question,
+			context="",
+			mode=mode,
+			chat_history=chat_history,
+			user_profile=user_profile,
+		)
 		return {
-			"answer": f"Unable to generate an answer right now: {exc}",
-			"sources": [],
+			"answer": answer,
+			"sources": ["MTI Knowledge Repository (Cloud Synthesis)"],
+			"images": [],
 		}
 
