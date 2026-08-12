@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogContent, IconButton, MenuItem, Paper, Select, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import imdLogo from "../assets/imd_logo.png";
 import { exportMessageToPdf } from "../utils/exportPdf";
-import { translateToHindiClient } from "../utils/formatError";
-import { generateDiagram, translateMessage } from "../services/api";
+import { translateMessage } from "../services/api";
 
 function TranslateIcon() {
   return (
@@ -458,29 +457,12 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text || "");
   const [editMode, setEditMode] = useState("moderate");
-  const [diagrams, setDiagrams] = useState([]);
-  const [diagramLoading, setDiagramLoading] = useState(false);
   const [previewModalImg, setPreviewModalImg] = useState(null);
   const [translatedHindiText, setTranslatedHindiText] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
   const [showHindi, setShowHindi] = useState(false);
   const editInputRef = useRef(null);
   const displayText = isUser ? text : cleanTextDisplay(showHindi && translatedHindiText ? translatedHindiText : text);
-
-  const handleGenerateDiagram = async () => {
-    const promptQuery = userQuestion.trim() || displayText.slice(0, 150);
-    if (!promptQuery) return;
-
-    setDiagramLoading(true);
-    try {
-      const diagram = await generateDiagram(promptQuery);
-      setDiagrams((prev) => [...prev, diagram]);
-    } catch (err) {
-      console.error("Diagram generation failed:", err);
-    } finally {
-      setDiagramLoading(false);
-    }
-  };
 
   const handleToggleHindiTranslation = async () => {
     if (showHindi) {
@@ -757,21 +739,7 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                       </IconButton>
                     </Tooltip>
 
-                    <Tooltip title={diagramLoading ? "Generating diagram..." : "Generate AI Diagram"} placement="top">
-                      <IconButton
-                        size="small"
-                        onClick={handleGenerateDiagram}
-                        disabled={diagramLoading}
-                        sx={{
-                          opacity: 0.8,
-                          p: { xs: 0.35, sm: 0.4 },
-                          color: "#2563eb",
-                          "&:hover": { opacity: 1, bgcolor: "rgba(37, 99, 235, 0.1)" },
-                        }}
-                      >
-                        {diagramLoading ? <CircularProgress size={13} color="primary" /> : <PaletteIcon />}
-                      </IconButton>
-                    </Tooltip>
+
 
                     {onDelete && (
                       <Tooltip title="Delete question & response" placement="top">
@@ -989,52 +957,7 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
           </Box>
         )}
 
-        {!isUser && diagrams && diagrams.length > 0 && (
-          <Box sx={{ mt: 1.5, pt: 1.25, borderTop: "1px solid", borderColor: "divider" }}>
-            <Typography variant="caption" sx={{ color: "#2563eb", fontWeight: 650, fontSize: "0.725rem", display: "block", mb: 0.75 }}>
-              🎨 Generated Visual Diagrams:
-            </Typography>
-            <Stack spacing={1.25}>
-              {diagrams.map((diag, idx) => (
-                <Paper
-                  key={idx}
-                  elevation={0}
-                  sx={{
-                    p: 1,
-                    borderRadius: "8px",
-                    border: "1px solid #bfdbfe",
-                    bgcolor: "#eff6ff",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 0.75,
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <Typography variant="caption" sx={{ fontWeight: 600, fontSize: "0.725rem", color: "#1e40af" }}>
-                      {diag.caption || "AI Generated Meteorological Diagram"}
-                    </Typography>
-                    <Chip label={diag.provider || "AI Model"} size="small" sx={{ height: 18, fontSize: "0.625rem", bgcolor: "#dbeafe", color: "#1d4ed8" }} />
-                  </Box>
-                  <Box
-                    component="img"
-                    src={getImageUrl(diag.url)}
-                    alt="AI Diagram"
-                    onClick={() => setPreviewModalImg({ url: getImageUrl(diag.url), caption: diag.caption })}
-                    sx={{
-                      width: "100%",
-                      maxHeight: { xs: 200, sm: 260 },
-                      objectFit: "contain",
-                      borderRadius: "6px",
-                      bgcolor: "#ffffff",
-                      border: "1px solid #cbd5e1",
-                      cursor: "pointer",
-                    }}
-                  />
-                </Paper>
-              ))}
-            </Stack>
-          </Box>
-        )}
+
 
         {!isUser && references.length > 0 && (
           <Box sx={{ mt: 1.5, pt: 1.25, borderTop: "1px solid", borderColor: "divider" }}>

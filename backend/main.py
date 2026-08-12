@@ -79,13 +79,11 @@ def on_startup():
 
 
 from fastapi.staticfiles import StaticFiles
-from rag.config import EXTRACTED_IMAGES_DIR, GENERATED_DIAGRAMS_DIR
+from rag.config import EXTRACTED_IMAGES_DIR
 
 EXTRACTED_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-GENERATED_DIAGRAMS_DIR.mkdir(parents=True, exist_ok=True)
 
 app.mount("/static/extracted_images", StaticFiles(directory=str(EXTRACTED_IMAGES_DIR)), name="extracted_images")
-app.mount("/static/generated_diagrams", StaticFiles(directory=str(GENERATED_DIAGRAMS_DIR)), name="generated_diagrams")
 
 app.include_router(auth_router)
 app.include_router(chat_router)

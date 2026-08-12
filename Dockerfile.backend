@@ -1,0 +1,50 @@
+# ==============================================================================
+# MTI Knowledge Assistant - Backend Dockerfile (FastAPI + RAG Pipeline)
+# ==============================================================================
+
+FROM python:3.11-slim AS base
+
+# Environment configurations
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    PORT=8000
+
+# Install system dependencies required for FAISS, PyMuPDF, and Pillow
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
+
+# Copy and install python dependencies
+COPY requirements.txt .
+
+# Install CPU-optimized PyTorch first for fast downloads & lightweight image, then install remaining dependencies
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy backend and RAG source code
+COPY backend/ /app/backend/
+COPY rag/ /app/rag/
+COPY api/ /app/api/
+COPY README.md /app/
+
+# Create persistent storage directories
+RUN mkdir -p /app/data /app/rag/store /app/data/extracted_images
+
+# Expose FastAPI backend port
+EXPOSE 8000
+
+# Container healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start Uvicorn ASGI server
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

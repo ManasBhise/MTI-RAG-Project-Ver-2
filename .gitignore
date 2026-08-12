@@ -6,23 +6,25 @@ mti_assistant.db
 mti_rag.db
 
 # React & Node
-node_modules/
-frontend/node_modules/
-frontend/dist/
+**/node_modules/
+**/dist/
+.npm
 
 # Python
 .venv/
-backend/venv/
-__pycache__/
-*.pyc
+**/__pycache__/
+*.py[cod]
 
 # Environment variables
 .env
-backend/.env
+.env.*
+**/.env
+**/.env.*
 
-# Streamlit & IDE
-.streamlit/secrets.toml
+# IDE & Vercel
 .vercel/
+.idea/
+.vscode/
 .DS_Store
 Thumbs.db
 

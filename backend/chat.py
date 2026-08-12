@@ -9,13 +9,11 @@ from sqlalchemy.orm import Session
 try:
 	from .auth import get_current_user
 	from .database import get_db
-	from .diagram_service import generate_meteorological_diagram
 	from .models import ChatHistory, ChatThread, User
 	from .rag_service import generate_answer
 except ImportError:
 	from auth import get_current_user
 	from database import get_db
-	from diagram_service import generate_meteorological_diagram
 	from models import ChatHistory, ChatThread, User
 	from rag_service import generate_answer
 
@@ -44,15 +42,6 @@ class ChatResponse(BaseModel):
 	images: list[ImageItem] = []
 	timestamp: datetime
 
-
-class GenerateDiagramRequest(BaseModel):
-	prompt: str = Field(min_length=2, max_length=1000)
-
-
-class GenerateDiagramResponse(BaseModel):
-	url: str
-	caption: str
-	provider: str
 
 
 class TranslateRequest(BaseModel):
@@ -239,22 +228,6 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db), current_user: User
 	}
 
 
-@router.post("/chat/generate-diagram", response_model=GenerateDiagramResponse)
-def generate_diagram(
-	payload: GenerateDiagramRequest,
-	current_user: User = Depends(get_current_user),
-):
-	"""Generate a high-quality scientific/meteorological diagram for a concept on demand."""
-	try:
-		diagram_info = generate_meteorological_diagram(payload.prompt)
-		return diagram_info
-	except Exception as exc:
-		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail=f"Diagram generation failed: {exc}",
-		)
-
-
 @router.post("/chat/translate", response_model=TranslateResponse)
 def translate_response(
 	payload: TranslateRequest,
@@ -267,18 +240,8 @@ def translate_response(
 	if not text_to_translate:
 		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Text to translate cannot be empty")
 
-	groq_key = os.getenv("GROQ_API_KEY", "").strip()
-	if not groq_key:
-		try:
-			from rag.config import GROQ_API_KEY
-			groq_key = GROQ_API_KEY
-		except Exception:
-			groq_key = ""
-
 	try:
-		from groq import Groq
-		client = Groq(api_key=groq_key)
-		groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+		from rag.llm_client import call_llm
 
 		lang_name = "Hindi (हिंदी - Devanagari script)" if target_lang in ("hindi", "hi") else target_lang.capitalize()
 
@@ -297,21 +260,15 @@ def translate_response(
 			{"role": "user", "content": text_to_translate},
 		]
 
-		completion = client.chat.completions.create(
-			model=groq_model,
-			messages=messages,
-			temperature=0.1,
-			max_tokens=2000,
-		)
-
-		translated_text = completion.choices[0].message.content.strip()
+		translated_text = call_llm(messages, temperature=0.1, max_tokens=2000)
 		return {
 			"translated_text": translated_text or text_to_translate,
 			"language": target_lang,
 		}
 	except Exception as exc:
+		logger.warning("LLM translation failed: %s", exc)
 		return {
-			"translated_text": f"### 1. अनुवाद (Hindi Translation)\n\n*(नोट: हिंदी अनुवाद वर्तमान में लोड हो रहा है या API कुंजी की पुष्टि की जा रही है।)*\n\n{text_to_translate}",
+			"translated_text": f"### 1. अनुवाद ({lang_name if 'lang_name' in locals() else target_lang.capitalize()})\n\n*(नोट: AI अनुवाद सेवा वर्तमान में अनुपलब्ध है। मूल पाठ नीचे दिया गया है:)*\n\n{text_to_translate}",
 			"language": target_lang,
 		}
 

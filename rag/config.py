@@ -19,7 +19,6 @@ vector_store_env = os.getenv("RAG_VECTOR_STORE_DIR")
 VECTOR_STORE_DIR = Path(vector_store_env) if vector_store_env else PROJECT_ROOT / "rag" / "store"
 
 EXTRACTED_IMAGES_DIR = PROJECT_ROOT / "data" / "extracted_images"
-GENERATED_DIAGRAMS_DIR = PROJECT_ROOT / "data" / "generated_diagrams"
 
 EMBEDDING_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "750"))
@@ -28,6 +27,14 @@ TOP_K = int(os.getenv("RAG_TOP_K", "12"))
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip()
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+
+PRIMARY_LLM_PROVIDER = os.getenv("PRIMARY_LLM_PROVIDER", "gemini").strip().lower()
 
 SYSTEM_PROMPT = """You are the official MTI Knowledge Assistant for the Meteorological Training Institute (India Meteorological Department - IMD).
 You specialize in meteorological training literature, atmospheric physics, weather forecasting, aeronautical/aviation meteorology, numerical weather prediction (NWP), radar/satellite remote sensing, and atmospheric sciences.

@@ -100,14 +100,8 @@ def _fallback_llm_answer(question: str, user_profile: dict | None = None) -> dic
 			"images": [],
 		}
 
-	groq_key = os.getenv("GROQ_API_KEY", "").strip()
-	if not groq_key:
-		return None
-
 	try:
-		from groq import Groq
-		client = Groq(api_key=groq_key)
-		groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+		from rag.llm_client import call_llm
 
 		system_prompt = (
 			"You are the official MTI Knowledge Assistant for the Meteorological Training Institute (India Meteorological Department - IMD).\n"
@@ -127,13 +121,7 @@ def _fallback_llm_answer(question: str, user_profile: dict | None = None) -> dic
 			{"role": "user", "content": question.strip()},
 		]
 
-		completion = client.chat.completions.create(
-			model=groq_model,
-			messages=messages,
-			temperature=0.1,
-			max_tokens=1500,
-		)
-		answer_text = completion.choices[0].message.content.strip()
+		answer_text = call_llm(messages, temperature=0.1, max_tokens=1500)
 
 		return {
 			"answer": answer_text,

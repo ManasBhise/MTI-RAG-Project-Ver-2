@@ -289,14 +289,7 @@ function Chat() {
       return true;
     }
 
-    // 9. AI Diagram Generation
-    const diagramKeywords = ["generate diagram", "create diagram", "draw diagram", "show diagram", "make diagram", "ai diagram"];
-    if (diagramKeywords.some((kw) => clean.includes(kw))) {
-      setVoiceActionToast("🎙️ Voice Command Executed: Generating AI Meteorological Diagram...");
-      setTimeout(() => setVoiceActionToast(""), 4000);
-      handleSend("Generate a detailed AI meteorological diagram illustrating atmospheric circulation and cloud formation physics.");
-      return true;
-    }
+
 
     // 10. Delete Last Message Pair
     const deleteMsgKeywords = ["delete last message", "remove last question", "delete question", "remove question", "delete message"];

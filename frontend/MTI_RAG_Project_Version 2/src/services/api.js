@@ -120,10 +120,7 @@ export const askQuestion = async (question, mode = "moderate", threadId = null) 
 	return data;
 };
 
-export const generateDiagram = async (prompt) => {
-	const { data } = await api.post("/chat/generate-diagram", { prompt });
-	return data;
-};
+
 
 export const fetchThreads = async () => {
 	const { data } = await api.get("/threads");

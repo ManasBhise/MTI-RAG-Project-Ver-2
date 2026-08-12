@@ -11,7 +11,6 @@ The system empowers meteorologists, trainees, and operational forecasters to que
 - 🔐 **Enterprise Authentication**: User registration, login, and Google OAuth 2.0 integration with JWT sessions and bcrypt password hashing.
 - 📚 **Grounded RAG Pipeline**: Context-aware retrieval over MTI training literature using semantic document search and Groq LLMs (`llama-3.3-70b-versatile`).
 - 🛡️ **Anti-Hallucination & Out-of-Domain Guardrails**: Strict prompt constraints that decline non-meteorological trivia and prevent fabricated facts.
-- 📊 **Scientific Diagram Generation**: Automated generation of meteorological concept diagrams (thermal advection, synoptic weather charts, atmospheric thermodynamics).
 - 💬 **Multi-Threaded Conversation History**: Thread creation, thread renaming, message history persistence, and full conversation export to PDF.
 - 🎙️ **Voice Control & Text-to-Speech**: Speech-to-text input, voice action commands, and read-aloud TTS capabilities for hands-free operational use.
 - 🎨 **Modern Executive UI**: Crafted with React 19, Material-UI, dark/light theme switching, glassmorphism aesthetics, and responsive layout.
@@ -148,7 +147,6 @@ To ingest MTI PDF documents into the local FAISS index:
 | `/threads` | `GET` | Retrieve user's conversation threads |
 | `/threads/{id}/messages` | `GET` | Load messages for a specific conversation thread |
 | `/threads/{id}` | `PUT` / `DELETE` | Rename or delete a conversation thread |
-| `/chat/generate-diagram` | `POST` | Generate high-quality scientific diagram on demand |
 | `/health` | `GET` | Health check endpoint |
 
 ---
@@ -164,6 +162,12 @@ The project includes a root `vercel.json` configured for Vercel static frontend 
    - `JWT_SECRET_KEY`: Random secret string
    - `DATABASE_URL`: Hosted Postgres URL (Neon / Supabase) or omit for `/tmp` fallback
 3. Deploy!
+
+### **Deploying to IMD Physical Server (Docker & LAMP Reverse Proxy)**
+For on-premise physical servers running Apache / LAMP:
+1. Ensure Docker & Docker Compose are installed.
+2. Run `docker compose up --build -d`.
+3. Configure Apache reverse proxy to point to port `3000` (see [DEPLOYMENT.md](file:///c:/Manas/Studies/MTI%20Internship/Version%202/MTI-RAG-Project-Ver-2/DEPLOYMENT.md) and [deploy/apache-imd-reverse-proxy.conf](file:///c:/Manas/Studies/MTI%20Internship/Version%202/MTI-RAG-Project-Ver-2/deploy/apache-imd-reverse-proxy.conf)).
 
 ### **Deploying Backend to Render / Railway**
 For high-traffic or persistent disk environments (PostgreSQL + FAISS):

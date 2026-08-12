@@ -4,20 +4,18 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from groq import Groq
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from PIL import Image
 
 from rag.config import (
 	EXTRACTED_IMAGES_DIR,
-	GROQ_API_KEY,
-	GROQ_MODEL,
 	SYSTEM_PROMPT,
 	TOP_K,
 	VECTOR_STORE_DIR,
 )
 from rag.ingest import get_embeddings
+from rag.llm_client import call_llm
 
 logger = logging.getLogger(__name__)
 
@@ -366,81 +364,13 @@ def _is_repetitive_fragment(text: str) -> bool:
 	return False
 
 
-ACTIVE_GROQ_MODELS = [
-	"llama-3.3-70b-versatile",
-	"llama-3.1-8b-instant",
-	"llama3-70b-8192",
-	"llama3-8b-8192",
-]
-
-
-def _call_groq(client: Groq, messages: list[dict], preferred_model: str) -> str:
-	models_to_try = [preferred_model] + [m for m in ACTIVE_GROQ_MODELS if m != preferred_model]
-	models_to_try = list(dict.fromkeys(models_to_try))
-	last_err = None
-
-	for target_model in models_to_try:
-		try:
-			res = client.chat.completions.create(
-				model=target_model,
-				messages=messages,
-				temperature=0.1,
-				max_tokens=1200,
-			)
-			content = (res.choices[0].message.content or "").strip()
-			if content:
-				return content
-		except Exception as err:
-			last_err = err
-			logger.warning("Groq call to model %s failed: %s. Retrying next active model...", target_model, err)
-			continue
-
-	if last_err:
-		raise last_err
-	return ""
-
-
-def _is_image_generation_requested(question: str) -> bool:
-	q_lower = question.lower()
-	keywords = [
-		"generate image", "generate diagram", "create image", "create diagram",
-		"draw", "illustration", "visualize", "show diagram", "show image",
-		"make an image", "make a diagram", "explain with image", "explain with diagram",
-		"picture of", "diagram of", "with image", "with diagram"
-	]
-	return any(kw in q_lower for kw in keywords)
-
-
-def _try_generate_diagram(prompt: str) -> dict | None:
-	try:
-		try:
-			from backend.diagram_service import generate_meteorological_diagram
-		except ImportError:
-			from diagram_service import generate_meteorological_diagram
-		return generate_meteorological_diagram(prompt)
-	except Exception as err:
-		logger.warning("Auto diagram generation failed: %s", err)
-		return None
-
-
 def _generate_answer(
 	question: str,
 	context: str,
 	mode: str = "moderate",
 	chat_history: list[dict] | None = None,
-	is_image_query: bool = False,
 	user_profile: dict | None = None,
 ) -> str:
-	api_key = os.getenv("GROQ_API_KEY") or GROQ_API_KEY
-	model_name = os.getenv("GROQ_MODEL") or GROQ_MODEL
-
-	if not api_key:
-		logger.warning("GROQ_API_KEY is not set. Returning retrieved context as fallback.")
-		return (
-			"*(Note: GROQ_API_KEY is not set in backend/.env. Below is the relevant context retrieved directly from MTI materials:)*\n\n"
-			f"{context}"
-		)
-
 	mode_instruction = MODE_PROMPTS.get(mode.lower(), MODE_PROMPTS["moderate"])
 
 	profile_prompt = ""
@@ -473,8 +403,6 @@ def _generate_answer(
 				+ "\n(IMPORTANT: Tailor your response tone, explanations, and emoji policy to align with this user's profile and custom instructions.)"
 			)
 
-	client = Groq(api_key=api_key)
-
 	messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
 	if chat_history:
@@ -490,18 +418,10 @@ def _generate_answer(
 	# Cap context text to 3500 characters max
 	capped_context = context[:3500] if context else ""
 
-	image_extra_prompt = ""
-	if is_image_query:
-		image_extra_prompt = (
-			"\n\nNOTE: A custom visual scientific diagram has been generated for this user request. "
-			"Include a dedicated section titled '**Visual Diagram & Component Breakdown**' explaining what the visual diagram illustrates, "
-			"breaking down key features, arrows, layers, and physical mechanisms depicted in the diagram."
-		)
-
 	user_prompt = (
 		f"{mode_instruction}{profile_prompt}\n\n"
 		f"Context from MTI training documents:\n\n{capped_context}\n\n"
-		f"Current User Request: {question.strip()}{image_extra_prompt}\n\n"
+		f"Current User Request: {question.strip()}\n\n"
 		"IMPORTANT: The user is engaged in an ongoing conversation thread. "
 		"Refer directly to the preceding conversation turns in the chat history above to fulfill follow-up requests, requests for questions, or clarification of previous topics. "
 		"Synthesize a clear, full, and self-contained meteorological answer adhering to the requested response depth. "
@@ -511,7 +431,17 @@ def _generate_answer(
 
 	messages.append({"role": "user", "content": user_prompt})
 
-	content = _call_groq(client, messages, model_name)
+	try:
+		content = call_llm(messages, temperature=0.1, max_tokens=1500)
+	except Exception as err:
+		logger.warning("All LLM providers failed or unconfigured: %s. Returning retrieved context as fallback.", err)
+		if context:
+			return (
+				"*(Note: AI synthesis is currently running on direct context fallback. Below is the relevant material retrieved from MTI training literature:)*\n\n"
+				f"{context}"
+			)
+		return "I am currently unable to generate an AI answer. Please verify your API key configurations."
+
 	cleaned = clean_source_references(content)
 
 	# If output is a repetitive fragment or trivial text, fallback to domain synthesis
@@ -529,7 +459,7 @@ def _generate_answer(
 
 		retry_prompt = (
 			f"{mode_instruction}{profile_prompt}\n\n"
-			f"Current User Request: {question.strip()}{image_extra_prompt}\n\n"
+			f"Current User Request: {question.strip()}\n\n"
 			"IMPORTANT: Refer directly to the preceding conversation turns in the chat history above to construct the response. "
 			"Provide a clear, highly structured, and comprehensive meteorological explanation for this concept. "
 			"Organize your answer into distinct sections with bold titles (e.g. **1. Overview & Definition**, **2. Physical Principles & Formulation**, **3. Meteorological & NWP Applications**, **4. Key Takeaways**). "
@@ -537,8 +467,11 @@ def _generate_answer(
 		)
 		retry_messages.append({"role": "user", "content": retry_prompt})
 
-		retry_content = _call_groq(client, retry_messages, model_name)
-		cleaned = clean_source_references(retry_content)
+		try:
+			retry_content = call_llm(retry_messages, temperature=0.1, max_tokens=1500)
+			cleaned = clean_source_references(retry_content)
+		except Exception as err:
+			logger.warning("Retry LLM call failed: %s", err)
 
 	return cleaned or "No answer generated."
 
@@ -568,11 +501,6 @@ def ask_question(
 			"sources": [],
 		}
 
-	is_image_req = _is_image_generation_requested(question)
-	generated_diag_img = None
-	if is_image_req:
-		generated_diag_img = _try_generate_diagram(question)
-
 	try:
 		context, sources, images = _retrieve_context(retrieval_query)
 
@@ -583,7 +511,6 @@ def ask_question(
 				context="",
 				mode=mode,
 				chat_history=chat_history,
-				is_image_query=is_image_req,
 				user_profile=user_profile,
 			)
 			return {
@@ -597,7 +524,6 @@ def ask_question(
 			context,
 			mode=mode,
 			chat_history=chat_history,
-			is_image_query=is_image_req,
 			user_profile=user_profile,
 		)
 		return {"answer": answer, "sources": sources, "images": images}

@@ -55,9 +55,8 @@ const COMMAND_GROUPS = [
     ],
   },
   {
-    category: "🎨 AI Diagram & Visuals",
+    category: "✨ Personalization & Voice",
     commands: [
-      { trigger: '"Generate diagram" / "Draw diagram"', desc: "Auto-generates an AI meteorological chart" },
       { trigger: '"Toggle emojis" / "Enable emojis"', desc: "Toggles AI response emoji preference" },
     ],
   },
