@@ -1,22 +1,38 @@
 import os
+import sys
 from pathlib import Path
+
+# Ensure project root and backend directory are in sys.path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+BACKEND_DIR = Path(__file__).resolve().parent
+for p in (PROJECT_ROOT, BACKEND_DIR):
+	if str(p) not in sys.path:
+		sys.path.insert(0, str(p))
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
-
-load_dotenv(Path(__file__).resolve().parent / ".env")
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+load_dotenv(BACKEND_DIR / ".env")
+load_dotenv(PROJECT_ROOT / ".env")
 
 try:
-	from .auth import router as auth_router
-	from .chat import router as chat_router
-	from .documents import router as documents_router
-	from .database import Base, engine
+	from backend.auth import router as auth_router
+	from backend.chat import router as chat_router
+	from backend.documents import router as documents_router
+	from backend.database import Base, engine
 except ImportError:
-	from auth import router as auth_router
-	from chat import router as chat_router
-	from documents import router as documents_router
-	from database import Base, engine
+	try:
+		from .auth import router as auth_router
+		from .chat import router as chat_router
+		from .documents import router as documents_router
+		from .database import Base, engine
+	except ImportError:
+		from auth import router as auth_router
+		from chat import router as chat_router
+		from documents import router as documents_router
+		from database import Base, engine
 
 
 app = FastAPI(title="MTI Knowledge Assistant API", version="1.0.0")
@@ -80,11 +96,12 @@ def on_startup():
 		threading.Thread(target=_warmup, daemon=True).start()
 
 
-from fastapi.staticfiles import StaticFiles
-from rag.config import EXTRACTED_IMAGES_DIR
+try:
+	from rag.config import EXTRACTED_IMAGES_DIR
+except ImportError:
+	EXTRACTED_IMAGES_DIR = PROJECT_ROOT / "data" / "extracted_images"
 
 EXTRACTED_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-
 app.mount("/static/extracted_images", StaticFiles(directory=str(EXTRACTED_IMAGES_DIR)), name="extracted_images")
 
 app.include_router(auth_router)

@@ -169,11 +169,28 @@ For on-premise physical servers running Apache / LAMP:
 2. Run `docker compose up --build -d`.
 3. Configure Apache reverse proxy to point to port `3000` (see [DEPLOYMENT.md](file:///c:/Manas/Studies/MTI%20Internship/Version%202/MTI-RAG-Project-Ver-2/DEPLOYMENT.md) and [deploy/apache-imd-reverse-proxy.conf](file:///c:/Manas/Studies/MTI%20Internship/Version%202/MTI-RAG-Project-Ver-2/deploy/apache-imd-reverse-proxy.conf)).
 
-### **Deploying Backend to Render / Railway**
-For high-traffic or persistent disk environments (PostgreSQL + FAISS):
-1. Create a Python Web Service on Render or Railway pointing to `backend/main.py`.
-2. Start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-3. Set `VITE_API_BASE_URL` in Vercel to your deployed backend service URL.
+### **Deploying Backend to Render**
+
+#### Option A: 1-Click Render Blueprint (Recommended)
+1. In your Render Dashboard, click **New +** -> **Blueprint**.
+2. Connect this repository. Render will automatically detect `render.yaml`.
+3. Fill in your `GROQ_API_KEY` and `GEMINI_API_KEY` in the environment variables form.
+4. Click **Apply**.
+
+#### Option B: Manual Web Service Setup
+1. In Render Dashboard, click **New +** -> **Web Service**.
+2. Connect your Git repository.
+3. Configure the following fields:
+   - **Runtime**: `Python` (or `Docker` using `Dockerfile.backend`)
+   - **Build Command**: `./render-build.sh` (or `pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt`)
+   - **Start Command**: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 2`
+   - **Health Check Path**: `/health`
+4. Add Environment Variables:
+   - `GROQ_API_KEY`: Your Groq API key
+   - `GEMINI_API_KEY`: Your Gemini API key
+   - `JWT_SECRET_KEY`: Random 32+ character secret string
+   - `PRIMARY_LLM_PROVIDER`: `groq` (or `gemini`)
+5. Deploy service and set your frontend `VITE_API_BASE_URL` to your Render service URL (e.g. `https://mti-rag-backend.onrender.com`).
 
 ---
 

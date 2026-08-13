@@ -146,7 +146,7 @@ def split_documents(documents: list[Document]) -> list[Document]:
 def get_embeddings() -> HuggingFaceEmbeddings:
 	return HuggingFaceEmbeddings(
 		model_name=EMBEDDING_MODEL,
-		model_kwargs={"device": "cpu", "local_files_only": True},
+		model_kwargs={"device": "cpu"},
 		encode_kwargs={"normalize_embeddings": True},
 	)
 
