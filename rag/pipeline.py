@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -282,9 +283,6 @@ def _retrieve_context(question: str) -> tuple[str, list[str], list[dict]]:
 						})
 
 	return "\n\n".join(context_blocks), sources, images
-
-
-import re
 
 
 def clean_source_references(text: str) -> str:

@@ -18,7 +18,7 @@ DATA_DIR = Path(data_dir_env) if data_dir_env else PROJECT_ROOT / "data"
 vector_store_env = os.getenv("RAG_VECTOR_STORE_DIR")
 VECTOR_STORE_DIR = Path(vector_store_env) if vector_store_env else PROJECT_ROOT / "rag" / "store"
 
-EXTRACTED_IMAGES_DIR = PROJECT_ROOT / "data" / "extracted_images"
+EXTRACTED_IMAGES_DIR = Path(os.getenv("RAG_EXTRACTED_IMAGES_DIR", str(DATA_DIR / "extracted_images")))
 
 EMBEDDING_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "750"))

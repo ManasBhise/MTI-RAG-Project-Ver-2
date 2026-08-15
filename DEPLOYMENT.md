@@ -219,5 +219,5 @@ Whenever IMD uploads new training notes or syllabus PDFs:
 | **View real-time logs** | `docker compose logs -f` |
 | **Check container health** | `docker compose ps` |
 | **Rebuild after code changes** | `docker compose up --build -d` |
-| **Backup SQLite database** | `cp mti_assistant.db mti_assistant_backup_$(date +%F).db` |
+| **Backup SQLite database** | `cp data/mti_assistant.db data/mti_assistant_backup_$(date +%F).db` |
 | **Backup FAISS Vector Store** | `tar -czvf vector_store_backup_$(date +%F).tar.gz rag/store/` |

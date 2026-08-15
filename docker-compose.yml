@@ -21,11 +21,10 @@ services:
       - PYTHONUNBUFFERED=1
       - RAG_DATA_DIR=/app/data
       - RAG_VECTOR_STORE_DIR=/app/rag/store
+      - DATABASE_URL=sqlite:////app/data/mti_assistant.db
     volumes:
       - ./data:/app/data
       - ./rag/store:/app/rag/store
-      - mti_db_data:/app/backend/data
-      - ./mti_assistant.db:/app/mti_assistant.db
     networks:
       - mti-network
 
@@ -42,10 +41,6 @@ services:
       - backend
     networks:
       - mti-network
-
-volumes:
-  mti_db_data:
-    driver: local
 
 networks:
   mti-network:

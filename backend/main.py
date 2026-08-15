@@ -39,17 +39,18 @@ app = FastAPI(title="MTI Knowledge Assistant API", version="1.0.0")
 
 frontend_origins = os.getenv(
 	"FRONTEND_ORIGINS",
-	"http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,*",
+	"http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174",
 )
-allowed_origins = [origin.strip() for origin in frontend_origins.split(",") if origin.strip()]
+allowed_origins = [origin.strip() for origin in frontend_origins.split(",") if origin.strip() and origin.strip() != "*"]
 
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=["*"] if "*" in allowed_origins else allowed_origins,
-	allow_origin_regex=r"https://.*\.vercel\.app",
+	allow_origins=allowed_origins,
+	allow_origin_regex=r"https?://.*",
 	allow_credentials=True,
 	allow_methods=["*"],
 	allow_headers=["*"],
+	expose_headers=["*"],
 )
 
 
@@ -57,27 +58,28 @@ app.add_middleware(
 def on_startup():
 	Base.metadata.create_all(bind=engine)
 	try:
+		from sqlalchemy import inspect, text
+		insp = inspect(engine)
 		with engine.begin() as conn:
-			from sqlalchemy import text
-			result = conn.execute(text("PRAGMA table_info(users)"))
-			cols = [row[1] for row in result.fetchall()]
-			if "google_id" not in cols:
-				conn.execute(text("ALTER TABLE users ADD COLUMN google_id VARCHAR(255)"))
-			if "role" not in cols:
-				conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(120)"))
-			if "organization" not in cols:
-				conn.execute(text("ALTER TABLE users ADD COLUMN organization VARCHAR(150)"))
-			if "response_tone" not in cols:
-				conn.execute(text("ALTER TABLE users ADD COLUMN response_tone VARCHAR(50)"))
-			if "custom_instructions" not in cols:
-				conn.execute(text("ALTER TABLE users ADD COLUMN custom_instructions TEXT"))
-			if "use_emojis" not in cols:
-				conn.execute(text("ALTER TABLE users ADD COLUMN use_emojis BOOLEAN DEFAULT 1"))
+			if insp.has_table("users"):
+				cols = [col["name"] for col in insp.get_columns("users")]
+				if "google_id" not in cols:
+					conn.execute(text("ALTER TABLE users ADD COLUMN google_id VARCHAR(255)"))
+				if "role" not in cols:
+					conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(120)"))
+				if "organization" not in cols:
+					conn.execute(text("ALTER TABLE users ADD COLUMN organization VARCHAR(150)"))
+				if "response_tone" not in cols:
+					conn.execute(text("ALTER TABLE users ADD COLUMN response_tone VARCHAR(50)"))
+				if "custom_instructions" not in cols:
+					conn.execute(text("ALTER TABLE users ADD COLUMN custom_instructions TEXT"))
+				if "use_emojis" not in cols:
+					conn.execute(text("ALTER TABLE users ADD COLUMN use_emojis BOOLEAN DEFAULT 1"))
 
-			result_chat = conn.execute(text("PRAGMA table_info(chat_history)"))
-			chat_cols = [row[1] for row in result_chat.fetchall()]
-			if "thread_id" not in chat_cols:
-				conn.execute(text("ALTER TABLE chat_history ADD COLUMN thread_id VARCHAR(50)"))
+			if insp.has_table("chat_history"):
+				chat_cols = [col["name"] for col in insp.get_columns("chat_history")]
+				if "thread_id" not in chat_cols:
+					conn.execute(text("ALTER TABLE chat_history ADD COLUMN thread_id VARCHAR(50)"))
 	except Exception as e:
 		print(f"Startup migration warning: {e}")
 
