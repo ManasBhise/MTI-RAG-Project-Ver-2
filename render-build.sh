@@ -15,4 +15,7 @@ python -m pip install --no-cache-dir torch --index-url https://download.pytorch.
 echo "==> Installing Python project dependencies..."
 python -m pip install --no-cache-dir -r requirements.txt
 
+echo "==> Pre-caching sentence-transformers embedding model to eliminate runtime query latency..."
+python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')" || true
+
 echo "==> Build finished successfully."
