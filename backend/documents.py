@@ -6,7 +6,6 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from rag.config import DATA_DIR
-from rag.ingest import ingest_single_pdf, list_knowledge_documents, build_vector_store
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +23,7 @@ def get_documents():
 	Returns a list of all indexed PDF documents in the MTI Knowledge Base.
 	"""
 	try:
+		from rag.ingest import list_knowledge_documents
 		docs = list_knowledge_documents(DATA_DIR)
 		return {"status": "success", "total": len(docs), "documents": docs}
 	except Exception as exc:
@@ -64,6 +64,7 @@ async def upload_document(file: UploadFile = File(...)):
 		logger.info("Saved uploaded PDF to %s (%d bytes)", destination_path, len(content))
 
 		# Automatically apply RAG ingestion and update vector store
+		from rag.ingest import ingest_single_pdf
 		ingest_result = ingest_single_pdf(destination_path)
 
 		return {
@@ -106,6 +107,7 @@ def delete_document(filename: str):
 		logger.info("Deleted document %s", target_file)
 
 		# Rebuild index with remaining documents if any
+		from rag.ingest import list_knowledge_documents, build_vector_store
 		remaining_docs = list_knowledge_documents(DATA_DIR)
 		if remaining_docs:
 			try:

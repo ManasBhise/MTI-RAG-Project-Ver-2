@@ -4,9 +4,6 @@ import os
 import re
 from functools import lru_cache
 from pathlib import Path
-
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
 from PIL import Image
 
 from rag.config import (
@@ -15,7 +12,6 @@ from rag.config import (
 	TOP_K,
 	VECTOR_STORE_DIR,
 )
-from rag.ingest import get_embeddings
 from rag.llm_client import call_llm
 
 logger = logging.getLogger(__name__)
@@ -42,13 +38,16 @@ def _is_substantive_diagram(img_path: Path) -> bool:
 
 
 @lru_cache(maxsize=1)
-def _load_vector_store() -> FAISS:
+def _load_vector_store():
 	if not VECTOR_STORE_DIR.exists():
 		raise FileNotFoundError(
 			f"Vector store not found at {VECTOR_STORE_DIR}. Run: python -m rag.build_index"
 		)
 
-	embeddings: HuggingFaceEmbeddings = get_embeddings()
+	from langchain_community.vectorstores import FAISS
+	from rag.ingest import get_embeddings
+
+	embeddings = get_embeddings()
 	return FAISS.load_local(
 		str(VECTOR_STORE_DIR),
 		embeddings,
