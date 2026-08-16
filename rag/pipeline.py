@@ -206,9 +206,7 @@ def _retrieve_context(question: str) -> tuple[str, list[str], list[dict]]:
 
 	context_blocks: list[str] = []
 	sources: list[str] = []
-	images: list[dict] = []
 	seen_sources: set[str] = set()
-	seen_images: set[str] = set()
 
 	for index, document in enumerate(top_candidates, start=1):
 		source_label = _format_source(document.metadata)
@@ -218,71 +216,7 @@ def _retrieve_context(question: str) -> tuple[str, list[str], list[dict]]:
 			seen_sources.add(source_label)
 			sources.append(source_label)
 
-		# 1. Extract attached image URLs from chunk metadata
-		raw_imgs = document.metadata.get("extracted_images")
-		if raw_imgs:
-			try:
-				img_urls = json.loads(raw_imgs) if isinstance(raw_imgs, str) else raw_imgs
-				for url in img_urls:
-					if url not in seen_images:
-						seen_images.add(url)
-						images.append({
-							"url": url,
-							"source": source_label,
-							"caption": f"Document Figure ({source_label})",
-						})
-			except Exception:
-				pass
-
-		# 2. Page-matched and Document figure lookup from EXTRACTED_IMAGES_DIR (substantive diagrams only)
-		file_name = document.metadata.get("file_name") or document.metadata.get("source", "")
-		if file_name:
-			pdf_stem = Path(file_name).stem
-			pdf_slug = re.sub(r"[^a-zA-Z0-9_-]", "_", pdf_stem)
-			pdf_img_dir = EXTRACTED_IMAGES_DIR / pdf_slug
-			page_num = document.metadata.get("page")
-
-			if pdf_img_dir.exists() and pdf_img_dir.is_dir():
-				candidates: list[Path] = []
-				if page_num is not None:
-					try:
-						p_idx = int(page_num) + 1
-						# Check exact page first
-						for img_f in pdf_img_dir.glob(f"page_{p_idx}_img_*"):
-							if _is_substantive_diagram(img_f):
-								candidates.append(img_f)
-
-						# Check adjacent pages (+/- 1)
-						if not candidates:
-							for adj in [p_idx - 1, p_idx + 1]:
-								if adj > 0:
-									for img_f in pdf_img_dir.glob(f"page_{adj}_img_*"):
-										if _is_substantive_diagram(img_f):
-											candidates.append(img_f)
-					except ValueError:
-						pass
-
-				# Fallback to any substantive figures in this document folder
-				if not candidates:
-					for img_f in pdf_img_dir.glob("page_*"):
-						if _is_substantive_diagram(img_f):
-							candidates.append(img_f)
-
-				# Deduplicate & sort candidates by file size descending (richest diagrams first)
-				unique_candidates = sorted(list(dict.fromkeys(candidates)), key=lambda f: f.stat().st_size, reverse=True)
-
-				for img_file in unique_candidates[:2]:
-					rel_url = f"/static/extracted_images/{pdf_slug}/{img_file.name}"
-					if rel_url not in seen_images:
-						seen_images.add(rel_url)
-						pg_label = f", Page {int(page_num) + 1}" if page_num is not None else ""
-						images.append({
-							"url": rel_url,
-							"source": source_label,
-							"caption": f"MTI Document Figure ({pdf_stem}{pg_label})",
-						})
-
-	return "\n\n".join(context_blocks), sources, images
+	return "\n\n".join(context_blocks), sources, []
 
 
 def clean_source_references(text: str) -> str:

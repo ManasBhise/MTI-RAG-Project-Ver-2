@@ -424,21 +424,6 @@ function PaletteIcon() {
   );
 }
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL !== undefined
-    ? import.meta.env.VITE_API_BASE_URL
-    : import.meta.env.PROD
-    ? ""
-    : "http://localhost:8000";
-
-const getImageUrl = (url) => {
-  if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
-  const cleanBase = API_BASE_URL.replace(/\/$/, "");
-  const cleanPath = url.startsWith("/") ? url : `/${url}`;
-  return `${cleanBase}${cleanPath}`;
-};
-
 function TrashIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -457,7 +442,6 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text || "");
   const [editMode, setEditMode] = useState("moderate");
-  const [previewModalImg, setPreviewModalImg] = useState(null);
   const [translatedHindiText, setTranslatedHindiText] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
   const [showHindi, setShowHindi] = useState(false);
@@ -927,35 +911,6 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
           </Box>
         )}
 
-        {!isUser && images && images.length > 0 && (
-          <Box sx={{ mt: 1.5, pt: 1.25, borderTop: "1px solid", borderColor: "divider" }}>
-            <Typography variant="caption" sx={{ color: "#2563eb", fontWeight: 650, fontSize: "0.725rem", display: "block", mb: 0.75 }}>
-              📷 Source Document Figures:
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              {images.map((img, idx) => (
-                <Box
-                  key={idx}
-                  onClick={() => setPreviewModalImg({ url: getImageUrl(img.url), caption: img.caption || "Source Document Figure" })}
-                  sx={{
-                    width: { xs: 95, sm: 120 },
-                    height: { xs: 70, sm: 85 },
-                    borderRadius: "6px",
-                    overflow: "hidden",
-                    border: "1px solid",
-                    borderColor: "divider",
-                    cursor: "pointer",
-                    position: "relative",
-                    bgcolor: "#f8fafc",
-                    "&:hover": { borderColor: "#2563eb", boxShadow: "0 2px 8px rgba(37,99,235,0.2)" },
-                  }}
-                >
-                  <Box component="img" src={getImageUrl(img.url)} alt="Source Figure" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        )}
 
 
 
@@ -1017,32 +972,6 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
           <UserIcon />
         </Avatar>
       )}
-
-      <Dialog open={Boolean(previewModalImg)} onClose={() => setPreviewModalImg(null)} maxWidth="md" fullWidth>
-        <DialogContent sx={{ p: { xs: 1.5, sm: 2 }, bgcolor: "#0f172a", textAlign: "center" }}>
-          {previewModalImg && (
-            <Box>
-              <Typography variant="subtitle2" sx={{ color: "#ffffff", mb: 1.5, fontWeight: 600, fontSize: { xs: "0.8rem", sm: "0.9rem" } }}>
-                {previewModalImg.caption}
-              </Typography>
-              <Box
-                component="img"
-                src={getImageUrl(previewModalImg.url)}
-                alt="Full Preview"
-                sx={{ maxWidth: "100%", maxHeight: "75vh", borderRadius: "8px", objectFit: "contain", bgcolor: "#ffffff", p: 0.5 }}
-              />
-              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 1.5 }}>
-                <Button size="small" variant="outlined" onClick={() => setPreviewModalImg(null)} sx={{ color: "#ffffff", borderColor: "rgba(255,255,255,0.4)" }}>
-                  Close
-                </Button>
-                <Button size="small" variant="contained" component="a" href={getImageUrl(previewModalImg.url)} target="_blank" download sx={{ textTransform: "none" }}>
-                  Download Image
-                </Button>
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-      </Dialog>
     </Box>
   );
 }
