@@ -3,23 +3,6 @@
   "outputDirectory": "dist",
   "headers": [
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Pragma",
-          "value": "no-cache"
-        },
-        {
-          "key": "Expires",
-          "value": "0"
-        }
-      ]
-    },
-    {
       "source": "/assets/(.*)",
       "headers": [
         {
@@ -31,12 +14,8 @@
   ],
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/(auth|chat|threads|history|documents|health|static|user|docs|openapi.json)(.*)",
-      "destination": "/api/index.py"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

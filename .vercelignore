@@ -1,0 +1,14 @@
+backend/
+rag/
+data/
+api/
+requirements.txt
+Dockerfile.backend
+Dockerfile.frontend
+docker-compose.yml
+nginx.conf
+render.yaml
+render-build.sh
+*.db
+*.index
+*.npy
