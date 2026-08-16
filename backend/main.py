@@ -111,6 +111,13 @@ app.include_router(chat_router)
 app.include_router(documents_router)
 
 
+@app.get("/")
+@app.head("/")
+def root():
+	return {"status": "ok", "service": "MTI Knowledge Assistant API"}
+
+
 @app.get("/health")
+@app.head("/health")
 def health():
 	return {"status": "ok"}
