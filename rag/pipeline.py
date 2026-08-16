@@ -258,21 +258,22 @@ def clean_source_references(text: str) -> str:
 
 MODE_PROMPTS = {
 	"basic": (
-		"RESPONSE DEPTH: BASIC / BEGINNER.\n"
-		"Explain concepts in simple, clear everyday language. Use simple analogies where helpful. "
-		"Avoid dense technical jargon without explaining it first in simple terms."
+		"RESPONSE DEPTH & RIGOR: EXHAUSTIVE BASIC / INTRODUCTORY METEOROLOGICAL COURSE.\n"
+		"Provide a comprehensive, thoroughly detailed, and pedagogically rich explanation. "
+		"Explain every fundamental principle clearly with real-world atmospheric examples, intuitive physical analogies, and step-by-step breakdowns. "
+		"Never give a brief summary; unpack every concept with thorough definitions, atmospheric processes, and practical weather relevance."
 	),
 	"moderate": (
-		"RESPONSE DEPTH: MODERATE / BALANCED.\n"
-		"Provide a clear, educational, and balanced answer suitable for meteorological trainees. "
-		"Use standard technical terms with clear explanations."
+		"RESPONSE DEPTH & RIGOR: COMPREHENSIVE OPERATIONAL & SYNOPTIC METEOROLOGY (EXHAUSTIVE DETAIL).\n"
+		"Provide a deeply detailed, highly structured, and technically thorough training lecture. "
+		"Cover the fundamental physical mechanisms, atmospheric thermodynamics, synoptic setups, observation signatures (radar/satellite/tephigram), and operational forecasting significance in extensive detail. "
+		"Present equations with clear variable definitions and explain every step of the atmospheric process thoroughly."
 	),
 	"research": (
-		"RESPONSE DEPTH: IN-DEPTH RESEARCH / EXPERT.\n"
-		"Provide a rigorous, highly structured, and comprehensive expert analysis. "
-		"Organize your answer into clear, well-spaced paragraphs with descriptive bold section titles (such as **1. Theoretical Overview & Definition**, **2. Physical & Mathematical Formulation**, **3. Meteorological & NWP Applications**, and **4. Key Operational Summary**). "
-		"Use bullet points for listing formulas, variables, and key mechanisms to make the technical content clean and easy to read. "
-		"Do NOT copy broken PDF text column fragments."
+		"RESPONSE DEPTH & RIGOR: ADVANCED RESEARCH & NUMERICAL DYNAMICS (EXHAUSTIVE EXPERT ANALYSIS).\n"
+		"Deliver an exhaustive, graduate-level research analysis with complete mathematical formulations, thermodynamic derivations, dynamic scale analysis, and numerical weather prediction (NWP) parameterization considerations. "
+		"Detail governing equations, force balance mechanisms, baroclinic/barotropic dynamics, synoptic case structures, and operational IMD forecasting applications. "
+		"Format with expansive, bold section headers, detailed variable lists, and thorough explanatory paragraphs."
 	),
 }
 
@@ -337,33 +338,34 @@ def _generate_answer(
 	messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
 	if chat_history:
-		# Keep up to last 3 turns to optimize token budget
-		for turn in chat_history[-3:]:
+		# Keep up to last 4 turns for conversational context
+		for turn in chat_history[-4:]:
 			q = (turn.get("question") or "").strip()
 			a = (turn.get("answer") or "").strip()
 			if q:
-				messages.append({"role": "user", "content": q[:500]})
+				messages.append({"role": "user", "content": q[:800]})
 			if a:
-				messages.append({"role": "assistant", "content": a[:800]})
+				messages.append({"role": "assistant", "content": a[:1500]})
 
-	# Cap context text to 3500 characters max
-	capped_context = context[:3500] if context else ""
+	# Cap context text to 6000 characters max
+	capped_context = context[:6000] if context else ""
 
 	user_prompt = (
 		f"{mode_instruction}{profile_prompt}\n\n"
 		f"Context from MTI training documents:\n\n{capped_context}\n\n"
 		f"Current User Request: {question.strip()}\n\n"
-		"IMPORTANT: The user is engaged in an ongoing conversation thread. "
-		"Refer directly to the preceding conversation turns in the chat history above to fulfill follow-up requests, requests for questions, or clarification of previous topics. "
-		"Synthesize a clear, full, and self-contained meteorological answer adhering to the requested response depth. "
-		"Do NOT output raw character fragments or repetitive equation labels. "
-		"Do not include inline source citations like [1] or Source[2] in the body of your response."
+		"INSTRUCTION FOR DETAILED ANSWER GENERATION:\n"
+		"1. Synthesize a comprehensive, exhaustive, and deeply educational response. Do NOT provide brief or high-level summaries.\n"
+		"2. Structure your answer logically using clear markdown section headers (e.g. `### 1. Comprehensive Overview & Scientific Definition`, `### 2. Physical & Thermodynamic Mechanisms`, `### 3. Mathematical Formulation & Governing Equations`, `### 4. Synoptic, Radar & Satellite Observational Signatures`, `### 5. Operational, Aviation & Forecasting Implications`, `### 6. Key Takeaways & Operational Summary`).\n"
+		"3. Unpack all physical mechanisms, force balances, equations, variables, and atmospheric processes in detail.\n"
+		"4. The user is engaged in an ongoing conversation thread. Refer directly to the chat history above when responding to follow-ups or clarifications.\n"
+		"5. Do not include inline source citations like [1] or Source[2] in the body of your response."
 	)
 
 	messages.append({"role": "user", "content": user_prompt})
 
 	try:
-		content = call_llm(messages, temperature=0.1, max_tokens=1500)
+		content = call_llm(messages, temperature=0.1, max_tokens=3500)
 	except Exception as err:
 		logger.warning("All LLM providers failed or unconfigured: %s. Returning retrieved context as fallback.", err)
 		if context:
@@ -380,26 +382,26 @@ def _generate_answer(
 		retry_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
 		if chat_history:
-			for turn in chat_history[-3:]:
+			for turn in chat_history[-4:]:
 				q = (turn.get("question") or "").strip()
 				a = (turn.get("answer") or "").strip()
 				if q:
-					retry_messages.append({"role": "user", "content": q[:500]})
+					retry_messages.append({"role": "user", "content": q[:800]})
 				if a:
-					retry_messages.append({"role": "assistant", "content": a[:800]})
+					retry_messages.append({"role": "assistant", "content": a[:1500]})
 
 		retry_prompt = (
 			f"{mode_instruction}{profile_prompt}\n\n"
 			f"Current User Request: {question.strip()}\n\n"
-			"IMPORTANT: Refer directly to the preceding conversation turns in the chat history above to construct the response. "
-			"Provide a clear, highly structured, and comprehensive meteorological explanation for this concept. "
-			"Organize your answer into distinct sections with bold titles (e.g. **1. Overview & Definition**, **2. Physical Principles & Formulation**, **3. Meteorological & NWP Applications**, **4. Key Takeaways**). "
-			"Use clear paragraphs and bullet points so it is clean, readable, and easy to follow."
+			"INSTRUCTION: Refer directly to the preceding conversation turns in the chat history above. "
+			"Provide an exhaustive, highly structured, and comprehensive meteorological lecture on this topic. "
+			"Organize your answer into distinct sections with bold titles (e.g. **1. Overview & Scientific Definition**, **2. Physical & Thermodynamic Principles**, **3. Mathematical Formulations**, **4. Radar / Satellite / NWP Applications**, **5. Key Takeaways**). "
+			"Include thorough paragraphs, formulas with variable definitions, and detailed bullet points."
 		)
 		retry_messages.append({"role": "user", "content": retry_prompt})
 
 		try:
-			retry_content = call_llm(retry_messages, temperature=0.1, max_tokens=1500)
+			retry_content = call_llm(retry_messages, temperature=0.1, max_tokens=3500)
 			cleaned = clean_source_references(retry_content)
 		except Exception as err:
 			logger.warning("Retry LLM call failed: %s", err)

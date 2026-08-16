@@ -216,7 +216,7 @@ def _call_openai(api_key: str, model_name: str, messages: list[dict], temperatur
 def call_llm(
 	messages: list[dict],
 	temperature: float = 0.1,
-	max_tokens: int = 1500,
+	max_tokens: int = 3500,
 	preferred_provider: str | None = None,
 ) -> str:
 	"""
