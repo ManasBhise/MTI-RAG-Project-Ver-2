@@ -23,7 +23,7 @@ EXTRACTED_IMAGES_DIR = Path(os.getenv("RAG_EXTRACTED_IMAGES_DIR", str(DATA_DIR /
 EMBEDDING_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "750"))
 CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "150"))
-TOP_K = int(os.getenv("RAG_TOP_K", "12"))
+TOP_K = int(os.getenv("RAG_TOP_K", "6"))
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
