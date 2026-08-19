@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogContent, IconButton, MenuItem, Paper, Select, Stack, TextField, Tooltip, Typography } from "@mui/material";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import imdLogo from "../assets/imd_logo.png";
 import { exportMessageToPdf } from "../utils/exportPdf";
 import { translateMessage } from "../services/api";
@@ -148,266 +152,150 @@ const cleanTextDisplay = (raw) => {
     .trim();
 };
 
-const renderInlineFormatting = (content, isUser) => {
-  if (!content) return null;
+const normalizeMathAndMarkdown = (raw) => {
+  if (!raw) return "";
+  let text = cleanTextDisplay(raw);
 
-  // Split inline code `code`, bold **text**, and italic *text*
-  const parts = content.split(/(`.*?`|\*\*.*?\*\*|\*.*?\*)/g);
+  // Normalize LaTeX block delimiters \[ ... \] to $$ ... $$
+  text = text.replace(/\\\[([\s\S]*?)\\\]/g, (match, eq) => `\n\n$$\n${eq.trim()}\n$$\n\n`);
 
-  return parts.map((part, idx) => {
-    if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
-      return (
-        <Box
-          key={idx}
-          component="code"
-          sx={{
-            fontFamily: "Consolas, Monaco, monospace",
-            fontSize: "0.825rem",
-            px: 0.75,
-            py: 0.2,
-            mx: 0.2,
-            borderRadius: "4px",
-            bgcolor: isUser ? "rgba(255, 255, 255, 0.2)" : "rgba(37, 99, 235, 0.08)",
-            color: isUser ? "#ffffff" : "#1d4ed8",
-            border: "1px solid",
-            borderColor: isUser ? "rgba(255, 255, 255, 0.3)" : "rgba(37, 99, 235, 0.2)",
-          }}
-        >
-          {part.slice(1, -1)}
-        </Box>
-      );
-    }
-    if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
-      return (
-        <strong key={idx} style={{ fontWeight: 700, color: "inherit" }}>
-          {part.slice(2, -2)}
-        </strong>
-      );
-    }
-    if (part.startsWith("*") && part.endsWith("*") && part.length >= 2 && !part.startsWith("**")) {
-      return (
-        <em key={idx} style={{ fontStyle: "italic", color: "inherit" }}>
-          {part.slice(1, -1)}
-        </em>
-      );
-    }
-    return part;
-  });
+  // Normalize LaTeX inline delimiters \( ... \) to $ ... $
+  text = text.replace(/\\\(([\s\S]*?)\\\)/g, (match, eq) => `$${eq.trim()}$`);
+
+  // Strip \boxed{...} to standard equation inside math blocks
+  text = text.replace(/\\boxed\{([\s\S]*?)\}/g, "$1");
+
+  return text;
 };
 
 function FormattedMarkdown({ text, isUser = false }) {
   if (!text) return null;
 
-  const lines = text.split("\n");
-  let inCodeBlock = false;
-  let codeBlockLines = [];
-
-  const elements = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
-    const trimmed = rawLine.trim();
-
-    // Code block toggle ```
-    if (trimmed.startsWith("```")) {
-      if (inCodeBlock) {
-        elements.push(
-          <Box
-            key={`code-${i}`}
-            sx={{
-              my: 1.25,
-              p: 1.75,
-              borderRadius: "10px",
-              bgcolor: isUser ? "rgba(0,0,0,0.25)" : "#1e293b",
-              color: "#f8fafc",
-              fontFamily: "Consolas, Monaco, monospace",
-              fontSize: "0.8375rem",
-              lineHeight: 1.55,
-              overflowX: "auto",
-              whiteSpace: "pre-wrap",
-              border: "1px solid",
-              borderColor: "divider",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
-            }}
-          >
-            {codeBlockLines.join("\n")}
-          </Box>
-        );
-        codeBlockLines = [];
-        inCodeBlock = false;
-      } else {
-        inCodeBlock = true;
-        codeBlockLines = [];
-      }
-      continue;
-    }
-
-    if (inCodeBlock) {
-      codeBlockLines.push(rawLine);
-      continue;
-    }
-
-    // Empty paragraph spacing
-    if (!trimmed) {
-      elements.push(<Box key={`empty-${i}`} sx={{ height: 10 }} />);
-      continue;
-    }
-
-    // Headers (#, ##, ###, #### or **Section Titles**)
-    if (/^#{1,4}\s+/.test(trimmed)) {
-      const level = trimmed.match(/^(#{1,4})\s+/)[1].length;
-      const titleText = trimmed.replace(/^#{1,4}\s+/, "");
-      const fontSize = level === 1 ? "1.1rem" : level === 2 ? "1.025rem" : "0.95rem";
-      const color = level === 1 ? "#2563eb" : level === 2 ? "#1d4ed8" : "text.primary";
-
-      elements.push(
-        <Typography
-          key={`h-${i}`}
-          variant="h6"
-          sx={{
-            fontWeight: 750,
-            fontSize,
-            color: isUser ? "#ffffff" : color,
-            mt: i > 0 ? 2 : 0.5,
-            mb: 1,
-            lineHeight: 1.35,
-            letterSpacing: "0.01em",
-            borderBottom: level <= 2 && !isUser ? "1px solid rgba(37, 99, 235, 0.15)" : "none",
-            pb: level <= 2 ? 0.4 : 0,
-          }}
-        >
-          {renderInlineFormatting(titleText, isUser)}
-        </Typography>
-      );
-      continue;
-    }
-
-    // Blockquotes (> )
-    if (/^>\s+/.test(trimmed)) {
-      const quoteContent = trimmed.replace(/^>\s+/, "");
-      elements.push(
-        <Box
-          key={`quote-${i}`}
-          sx={{
-            pl: 2,
-            py: 0.75,
-            my: 1.25,
-            borderLeft: "3.5px solid",
-            borderColor: isUser ? "#ffffff" : "#2563eb",
-            bgcolor: isUser ? "rgba(255, 255, 255, 0.1)" : "rgba(37, 99, 235, 0.05)",
-            borderRadius: "0 6px 6px 0",
-            fontStyle: "italic",
-          }}
-        >
-          <Typography variant="body2" sx={{ fontSize: "0.8875rem", lineHeight: 1.65, color: isUser ? "#ffffff" : "text.primary" }}>
-            {renderInlineFormatting(quoteContent, isUser)}
-          </Typography>
-        </Box>
-      );
-      continue;
-    }
-
-    // Nested Bullet Points ("* ", "- ", "• ", "  * ", "    - ")
-    const leadingSpaces = rawLine.search(/\S/);
-    const isSubBullet = leadingSpaces >= 2 && /^(?:\*|-|•)\s+/.test(trimmed);
-    const isMainBullet = !isSubBullet && /^(?:\*|-|•)\s+/.test(trimmed);
-
-    if (isMainBullet || isSubBullet) {
-      const bulletContent = trimmed.replace(/^(?:\*|-|•)\s+/, "");
-      const indentLeft = isSubBullet ? (leadingSpaces >= 4 ? 3.5 : 2.25) : 0.5;
-      const bulletMarker = isSubBullet ? "◦" : "•";
-
-      elements.push(
-        <Box key={`bullet-${i}`} sx={{ display: "flex", alignItems: "flex-start", gap: 1, pl: indentLeft, my: 0.45 }}>
-          <Box
-            component="span"
-            sx={{
-              color: isUser ? "#ffffff" : isSubBullet ? "#64748b" : "#2563eb",
-              fontWeight: "bold",
-              fontSize: isSubBullet ? "0.7rem" : "0.825rem",
-              lineHeight: 1.65,
-              userSelect: "none",
-              mt: "1px",
-            }}
-          >
-            {bulletMarker}
-          </Box>
-          <Typography
-            variant="body2"
-            sx={{
-              fontSize: isSubBullet ? "0.8625rem" : "0.9rem",
-              lineHeight: 1.68,
-              color: isUser ? "#ffffff" : "text.primary",
-              flex: 1,
-              letterSpacing: "0.005em",
-            }}
-          >
-            {renderInlineFormatting(bulletContent, isUser)}
-          </Typography>
-        </Box>
-      );
-      continue;
-    }
-
-    // Numbered List Items ("1. ", "2. ", "1) ", "2) ")
-    const numMatch = trimmed.match(/^(\d+[\.\)])\s+(.*)/);
-    if (numMatch) {
-      const numLabel = numMatch[1];
-      const numContent = numMatch[2];
-
-      elements.push(
-        <Box key={`num-${i}`} sx={{ display: "flex", alignItems: "flex-start", gap: 1, pl: 0.5, my: 0.5 }}>
-          <Typography
-            component="span"
-            sx={{
-              color: isUser ? "#ffffff" : "#2563eb",
-              fontWeight: 750,
-              fontSize: "0.85rem",
-              lineHeight: 1.68,
-              userSelect: "none",
-              minWidth: 22,
-            }}
-          >
-            {numLabel}
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              fontSize: "0.9rem",
-              lineHeight: 1.68,
-              color: isUser ? "#ffffff" : "text.primary",
-              flex: 1,
-              letterSpacing: "0.005em",
-            }}
-          >
-            {renderInlineFormatting(numContent, isUser)}
-          </Typography>
-        </Box>
-      );
-      continue;
-    }
-
-    // Standard paragraph
-    elements.push(
-      <Typography
-        key={`p-${i}`}
-        variant="body2"
-        sx={{
-          fontSize: "0.9rem",
-          lineHeight: 1.7,
-          color: isUser ? "#ffffff" : "text.primary",
-          letterSpacing: "0.005em",
-          my: 0.4,
-        }}
-      >
-        {renderInlineFormatting(rawLine, isUser)}
-      </Typography>
-    );
-  }
+  const normalized = normalizeMathAndMarkdown(text);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, textAlign: "left" }}>
-      {elements}
+    <Box
+      sx={{
+        width: "100%",
+        textAlign: "left",
+        color: isUser ? "#ffffff" : "text.primary",
+        fontSize: "0.9125rem",
+        lineHeight: 1.7,
+        letterSpacing: "0.005em",
+        "& .katex-display": {
+          my: 1.75,
+          py: 1.25,
+          px: 1.5,
+          borderRadius: "8px",
+          bgcolor: isUser ? "rgba(255,255,255,0.12)" : "#f8fafc",
+          border: isUser ? "1px solid rgba(255,255,255,0.2)" : "1px solid #e2e8f0",
+          overflowX: "auto",
+          overflowY: "hidden",
+        },
+        "& .katex": {
+          fontSize: "1.05em",
+        },
+      }}
+    >
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          h1: ({ node, ...props }) => (
+            <Typography variant="h5" sx={{ fontWeight: 800, color: isUser ? "#fff" : "#1d4ed8", mt: 2.5, mb: 1, pb: 0.5, borderBottom: isUser ? "none" : "1.5px solid rgba(37, 99, 235, 0.2)", fontSize: "1.15rem" }} {...props} />
+          ),
+          h2: ({ node, ...props }) => (
+            <Typography variant="h6" sx={{ fontWeight: 750, color: isUser ? "#fff" : "#1e40af", mt: 2, mb: 1, pb: 0.4, borderBottom: isUser ? "none" : "1px solid rgba(37, 99, 235, 0.12)", fontSize: "1.05rem" }} {...props} />
+          ),
+          h3: ({ node, ...props }) => (
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: isUser ? "#fff" : "#2563eb", mt: 1.75, mb: 0.75, fontSize: "0.975rem" }} {...props} />
+          ),
+          h4: ({ node, ...props }) => (
+            <Typography variant="subtitle2" sx={{ fontWeight: 650, color: isUser ? "#fff" : "text.primary", mt: 1.5, mb: 0.5, fontSize: "0.925rem" }} {...props} />
+          ),
+          p: ({ node, ...props }) => (
+            <Typography variant="body2" sx={{ color: isUser ? "#fff" : "text.primary", my: 0.65, lineHeight: 1.7, fontSize: "0.9rem" }} {...props} />
+          ),
+          ul: ({ node, ...props }) => (
+            <Box component="ul" sx={{ pl: 2.5, my: 0.75, listStyleType: "disc" }} {...props} />
+          ),
+          ol: ({ node, ...props }) => (
+            <Box component="ol" sx={{ pl: 2.5, my: 0.75 }} {...props} />
+          ),
+          li: ({ node, ...props }) => (
+            <Typography component="li" variant="body2" sx={{ my: 0.4, lineHeight: 1.68, fontSize: "0.9rem", color: isUser ? "#fff" : "text.primary" }} {...props} />
+          ),
+          blockquote: ({ node, ...props }) => (
+            <Box sx={{ pl: 2, py: 0.75, my: 1.5, borderLeft: "3.5px solid", borderColor: isUser ? "#fff" : "#2563eb", bgcolor: isUser ? "rgba(255,255,255,0.1)" : "rgba(37, 99, 235, 0.05)", borderRadius: "0 6px 6px 0", fontStyle: "italic" }} {...props} />
+          ),
+          hr: ({ node, ...props }) => (
+            <Box sx={{ my: 2, border: 0, borderTop: isUser ? "1px solid rgba(255,255,255,0.25)" : "1px solid #e2e8f0" }} />
+          ),
+          table: ({ node, ...props }) => (
+            <Box sx={{ overflowX: "auto", my: 2, borderRadius: "8px", border: isUser ? "1px solid rgba(255,255,255,0.3)" : "1px solid #e2e8f0", boxShadow: isUser ? "none" : "0 1px 3px 0 rgba(0,0,0,0.04)" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem", textAlign: "left" }} {...props} />
+            </Box>
+          ),
+          thead: ({ node, ...props }) => (
+            <thead style={{ backgroundColor: isUser ? "rgba(255,255,255,0.15)" : "#f8fafc", borderBottom: isUser ? "2px solid rgba(255,255,255,0.3)" : "2px solid #cbd5e1" }} {...props} />
+          ),
+          th: ({ node, ...props }) => (
+            <th style={{ padding: "10px 14px", fontWeight: 700, color: isUser ? "#ffffff" : "#1e293b", borderRight: isUser ? "1px solid rgba(255,255,255,0.15)" : "1px solid #e2e8f0" }} {...props} />
+          ),
+          tbody: ({ node, ...props }) => (
+            <tbody {...props} />
+          ),
+          tr: ({ node, ...props }) => (
+            <tr style={{ borderBottom: isUser ? "1px solid rgba(255,255,255,0.1)" : "1px solid #f1f5f9" }} {...props} />
+          ),
+          td: ({ node, ...props }) => (
+            <td style={{ padding: "9px 14px", verticalAlign: "top", color: isUser ? "#ffffff" : "inherit", borderRight: isUser ? "1px solid rgba(255,255,255,0.1)" : "1px solid #f8fafc" }} {...props} />
+          ),
+          code: ({ node, inline, ...props }) => {
+            if (inline) {
+              return (
+                <Box
+                  component="code"
+                  sx={{
+                    fontFamily: "Consolas, Monaco, monospace",
+                    fontSize: "0.825rem",
+                    px: 0.75,
+                    py: 0.2,
+                    mx: 0.2,
+                    borderRadius: "4px",
+                    bgcolor: isUser ? "rgba(255, 255, 255, 0.2)" : "rgba(37, 99, 235, 0.08)",
+                    color: isUser ? "#ffffff" : "#1d4ed8",
+                    border: "1px solid",
+                    borderColor: isUser ? "rgba(255, 255, 255, 0.3)" : "rgba(37, 99, 235, 0.2)",
+                  }}
+                  {...props}
+                />
+              );
+            }
+            return (
+              <Box
+                component="pre"
+                sx={{
+                  my: 1.5,
+                  p: 1.75,
+                  borderRadius: "8px",
+                  bgcolor: "#0f172a",
+                  color: "#f8fafc",
+                  fontFamily: "Consolas, Monaco, monospace",
+                  fontSize: "0.8375rem",
+                  lineHeight: 1.55,
+                  overflowX: "auto",
+                  border: "1px solid #334155",
+                }}
+              >
+                <code {...props} />
+              </Box>
+            );
+          },
+        }}
+      >
+        {normalized}
+      </ReactMarkdown>
     </Box>
   );
 }
