@@ -119,6 +119,7 @@ def delete_thread(
 
 
 @router.post("/chat", response_model=ChatResponse)
+@router.post("/chat/", response_model=ChatResponse)
 def chat(payload: ChatRequest, current_user: User = Depends(get_current_user)):
 	"""
 	Process chat queries in-memory with Zero Server Storage / Zero Data Retention.

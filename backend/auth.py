@@ -131,6 +131,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 @router.post("/auth/anonymous", response_model=LoginResponse)
+@router.post("/auth/anonymous/", response_model=LoginResponse)
 def anonymous_login(payload: AnonymousLoginRequest | None = None, db: Session = Depends(get_db)):
 	import uuid
 	device_id = payload.device_id.strip() if (payload and payload.device_id) else None
@@ -171,6 +172,7 @@ def anonymous_login(payload: AnonymousLoginRequest | None = None, db: Session = 
 
 
 @router.post("/auth/login", response_model=LoginResponse)
+@router.post("/auth/login/", response_model=LoginResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
 	"""
 	Authenticates official MTI / IMD users and administrators for document uploads.
