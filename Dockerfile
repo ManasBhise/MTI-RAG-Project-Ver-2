@@ -20,8 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user (UID 1000) for Hugging Face Spaces compatibility
-RUN useradd -m -u 1000 user
 WORKDIR /app
 
 # Upgrade pip
@@ -38,12 +36,8 @@ COPY rag/ /app/rag/
 COPY data/ /app/data/
 COPY README.md /app/
 
-# Set up storage directories and adjust permissions for non-root user
-RUN mkdir -p /app/data /app/rag/store /app/data/extracted_images && \
-    chown -R user:user /app
-
-# Switch to user 1000
-USER user
+# Set up storage directories
+RUN mkdir -p /app/data /app/rag/store /app/data/extracted_images
 
 # Expose application port
 EXPOSE 8000
@@ -53,4 +47,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 # Launch FastAPI ASGI server dynamically binding to Railway $PORT
-CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
