@@ -25,10 +25,13 @@ ACTIVE_GROQ_MODELS = [
 ]
 
 ACTIVE_GEMINI_MODELS = [
+	"gemini-3.6-flash",
+	"gemini-3.7-flash",
+	"gemini-flash-latest",
+	"gemini-3.5-flash",
+	"gemini-3.1-flash-lite",
+	"gemini-2.5-flash",
 	"gemini-1.5-flash",
-	"gemini-2.0-flash",
-	"gemini-1.5-pro",
-	"gemini-pro",
 ]
 
 ACTIVE_OPENAI_MODELS = [
@@ -76,11 +79,11 @@ def _call_gemini_via_sdk(api_key: str, model_name: str, messages: list[dict], te
 
 
 def _call_gemini_via_rest(api_key: str, model_name: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-	"""Direct REST API fallback for Google Gemini (zero external SDK dependency)."""
+	"""Direct REST API fallback for Google Gemini supporting modern API keys."""
 	import requests
 
 	clean_model = model_name.replace("models/", "")
-	url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent?key={api_key}"
+	url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent"
 
 	system_prompt = None
 	contents = []
@@ -92,7 +95,7 @@ def _call_gemini_via_rest(api_key: str, model_name: str, messages: list[dict], t
 			system_prompt = content
 		elif role == "assistant":
 			contents.append({"role": "model", "parts": [{"text": content}]})
-		else:
+		else:  # user
 			contents.append({"role": "user", "parts": [{"text": content}]})
 
 	payload: dict[str, Any] = {
@@ -108,8 +111,15 @@ def _call_gemini_via_rest(api_key: str, model_name: str, messages: list[dict], t
 			"parts": [{"text": system_prompt}]
 		}
 
-	headers = {"Content-Type": "application/json"}
-	resp = requests.post(url, headers=headers, json=payload, timeout=12)
+	headers = {
+		"Content-Type": "application/json",
+		"x-goog-api-key": api_key,
+	}
+	resp = requests.post(url, headers=headers, json=payload, timeout=20)
+	if not resp.ok:
+		# Fallback with ?key= query parameter
+		fallback_url = f"{url}?key={api_key}"
+		resp = requests.post(fallback_url, headers={"Content-Type": "application/json"}, json=payload, timeout=20)
 	resp.raise_for_status()
 
 	data = resp.json()
