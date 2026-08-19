@@ -351,7 +351,7 @@ def _generate_answer(
 		f"Current User Request: {question.strip()}\n\n"
 		"INSTRUCTIONS FOR ANSWER GENERATION:\n"
 		"1. ADAPTIVE FORMAT: If the user specifically asked for a single line, bullet points, table, or brief summary, provide that exact format directly and prominently first.\n"
-		"2. STRUCTURED LAYOUT: For open-ended questions, organize with clean, bold section headers and horizontal dividers (`---`).\n"
+		"2. STRUCTURED LAYOUT: Put each markdown section heading on its own separate line with a blank line before and after (e.g. \\n\\n### 📌 1. Scientific Definition\\n\\n). Never put body text on the same line as the heading title.\n"
 		"3. FORMULAS: Format mathematical equations cleanly in standard LaTeX ($...$ or $$...$$) with clearly defined variables.\n"
 		"4. CONCISE & READABLE: Use bullet points, bold key terms, and clean tables for enhanced readability.\n"
 		"5. Do not include inline source citations like [1] or Source[2] in the body of the response."

@@ -156,6 +156,13 @@ const normalizeMathAndMarkdown = (raw) => {
   if (!raw) return "";
   let text = cleanTextDisplay(raw);
 
+  // Fix bolded headers like **### 1. Overview** or ### **1. Overview**
+  text = text.replace(/\*\*(#{1,4}\s+[^*]+?)\*\*/g, "\n\n$1\n\n");
+  text = text.replace(/(#{1,4})\s*\*\*([^*]+?)\*\*/g, "\n\n$1 $2\n\n");
+
+  // Ensure double newlines after every markdown heading so text doesn't merge
+  text = text.replace(/^(#{1,4}\s+[^\n]+)\s*\n(?!\n)/gm, "$1\n\n");
+
   // Normalize LaTeX block delimiters \[ ... \] to $$ ... $$
   text = text.replace(/\\\[([\s\S]*?)\\\]/g, (match, eq) => `\n\n$$\n${eq.trim()}\n$$\n\n`);
 
@@ -165,7 +172,7 @@ const normalizeMathAndMarkdown = (raw) => {
   // Strip \boxed{...} to standard equation inside math blocks
   text = text.replace(/\\boxed\{([\s\S]*?)\}/g, "$1");
 
-  return text;
+  return text.trim();
 };
 
 function FormattedMarkdown({ text, isUser = false }) {
@@ -180,7 +187,7 @@ function FormattedMarkdown({ text, isUser = false }) {
         textAlign: "left",
         color: isUser ? "#ffffff" : "text.primary",
         fontSize: "0.9125rem",
-        lineHeight: 1.7,
+        lineHeight: 1.75,
         letterSpacing: "0.005em",
         "& .katex-display": {
           my: 1.75,
@@ -202,19 +209,19 @@ function FormattedMarkdown({ text, isUser = false }) {
         rehypePlugins={[rehypeKatex]}
         components={{
           h1: ({ node, ...props }) => (
-            <Typography variant="h5" sx={{ fontWeight: 800, color: isUser ? "#fff" : "#1d4ed8", mt: 2.5, mb: 1, pb: 0.5, borderBottom: isUser ? "none" : "1.5px solid rgba(37, 99, 235, 0.2)", fontSize: "1.15rem" }} {...props} />
+            <Typography variant="h5" sx={{ fontWeight: 800, color: isUser ? "#ffffff" : "#0f172a", mt: 2.5, mb: 1, pb: 0.5, borderBottom: isUser ? "none" : "1.5px solid #e2e8f0", fontSize: "1.15rem", letterSpacing: "0.01em" }} {...props} />
           ),
           h2: ({ node, ...props }) => (
-            <Typography variant="h6" sx={{ fontWeight: 750, color: isUser ? "#fff" : "#1e40af", mt: 2, mb: 1, pb: 0.4, borderBottom: isUser ? "none" : "1px solid rgba(37, 99, 235, 0.12)", fontSize: "1.05rem" }} {...props} />
+            <Typography variant="h6" sx={{ fontWeight: 750, color: isUser ? "#ffffff" : "#1e293b", mt: 2.25, mb: 1, pb: 0.4, borderBottom: isUser ? "none" : "1px solid #f1f5f9", fontSize: "1.05rem" }} {...props} />
           ),
           h3: ({ node, ...props }) => (
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: isUser ? "#fff" : "#2563eb", mt: 1.75, mb: 0.75, fontSize: "0.975rem" }} {...props} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: isUser ? "#ffffff" : "#1e293b", mt: 1.75, mb: 0.75, fontSize: "0.95rem", display: "flex", alignItems: "center", gap: 0.5 }} {...props} />
           ),
           h4: ({ node, ...props }) => (
-            <Typography variant="subtitle2" sx={{ fontWeight: 650, color: isUser ? "#fff" : "text.primary", mt: 1.5, mb: 0.5, fontSize: "0.925rem" }} {...props} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 650, color: isUser ? "#ffffff" : "#334155", mt: 1.5, mb: 0.5, fontSize: "0.9125rem" }} {...props} />
           ),
           p: ({ node, ...props }) => (
-            <Typography variant="body2" sx={{ color: isUser ? "#fff" : "text.primary", my: 0.65, lineHeight: 1.7, fontSize: "0.9rem" }} {...props} />
+            <Typography variant="body2" sx={{ color: isUser ? "#ffffff" : "text.primary", my: 0.65, lineHeight: 1.75, fontSize: "0.9rem" }} {...props} />
           ),
           ul: ({ node, ...props }) => (
             <Box component="ul" sx={{ pl: 2.5, my: 0.75, listStyleType: "disc" }} {...props} />
@@ -223,10 +230,10 @@ function FormattedMarkdown({ text, isUser = false }) {
             <Box component="ol" sx={{ pl: 2.5, my: 0.75 }} {...props} />
           ),
           li: ({ node, ...props }) => (
-            <Typography component="li" variant="body2" sx={{ my: 0.4, lineHeight: 1.68, fontSize: "0.9rem", color: isUser ? "#fff" : "text.primary" }} {...props} />
+            <Typography component="li" variant="body2" sx={{ my: 0.35, lineHeight: 1.72, fontSize: "0.9rem", color: isUser ? "#ffffff" : "text.primary" }} {...props} />
           ),
           blockquote: ({ node, ...props }) => (
-            <Box sx={{ pl: 2, py: 0.75, my: 1.5, borderLeft: "3.5px solid", borderColor: isUser ? "#fff" : "#2563eb", bgcolor: isUser ? "rgba(255,255,255,0.1)" : "rgba(37, 99, 235, 0.05)", borderRadius: "0 6px 6px 0", fontStyle: "italic" }} {...props} />
+            <Box sx={{ pl: 2, py: 0.75, my: 1.5, borderLeft: "3.5px solid", borderColor: isUser ? "#ffffff" : "#2563eb", bgcolor: isUser ? "rgba(255,255,255,0.1)" : "rgba(37, 99, 235, 0.05)", borderRadius: "0 6px 6px 0", fontStyle: "italic" }} {...props} />
           ),
           hr: ({ node, ...props }) => (
             <Box sx={{ my: 2, border: 0, borderTop: isUser ? "1px solid rgba(255,255,255,0.25)" : "1px solid #e2e8f0" }} />
