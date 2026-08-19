@@ -474,8 +474,38 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
     window.speechSynthesis.speak(utterance);
   };
 
-  const handleDownloadPdf = () => {
-    exportMessageToPdf({ question: userQuestion, text, timestamp, references });
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (isDownloadingPdf) return;
+    setIsDownloadingPdf(true);
+    try {
+      const isHindiActive = showHindi && !!translatedHindiText;
+      let finalQuestion = userQuestion;
+
+      if (isHindiActive && userQuestion) {
+        try {
+          const res = await translateMessage(userQuestion, "hindi");
+          if (res && res.translated_text) {
+            finalQuestion = `${res.translated_text}\n\n(${userQuestion})`;
+          }
+        } catch (e) {
+          console.warn("Question translation for PDF export:", e);
+        }
+      }
+
+      await exportMessageToPdf({
+        question: finalQuestion,
+        text: isHindiActive ? translatedHindiText : text,
+        timestamp,
+        references,
+        isHindi: isHindiActive,
+      });
+    } catch (err) {
+      console.error("PDF export error:", err);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   return (
@@ -603,19 +633,22 @@ function Message({ role, text, references = [], images = [], timestamp, isLoadin
                       </IconButton>
                     </Tooltip>
 
-                    <Tooltip title="Download as PDF" placement="top">
-                      <IconButton
-                        size="small"
-                        onClick={handleDownloadPdf}
-                        sx={{
-                          opacity: 0.65,
-                          p: { xs: 0.35, sm: 0.4 },
-                          color: "text.secondary",
-                          "&:hover": { opacity: 1, bgcolor: "#f1f5f9" },
-                        }}
-                      >
-                        <PdfIcon />
-                      </IconButton>
+                    <Tooltip title={isDownloadingPdf ? "Generating High-Resolution PDF..." : "Download as PDF"} placement="top">
+                      <span>
+                        <IconButton
+                          size="small"
+                          disabled={isDownloadingPdf}
+                          onClick={handleDownloadPdf}
+                          sx={{
+                            opacity: isDownloadingPdf ? 0.4 : 0.65,
+                            p: { xs: 0.35, sm: 0.4 },
+                            color: "text.secondary",
+                            "&:hover": { opacity: 1, bgcolor: "#f1f5f9" },
+                          }}
+                        >
+                          <PdfIcon />
+                        </IconButton>
+                      </span>
                     </Tooltip>
 
 
