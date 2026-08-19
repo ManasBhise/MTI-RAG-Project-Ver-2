@@ -2,13 +2,12 @@ import os
 import sys
 from pathlib import Path
 
-# Restrict multi-threading memory consumption across all libraries on cloud containers
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1"
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+# Memory and threading optimization
+os.environ.setdefault("OMP_NUM_THREADS", "2")
+os.environ.setdefault("MKL_NUM_THREADS", "2")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "2")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
 # Ensure project root and backend directory are in sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -90,6 +89,13 @@ def on_startup():
 					conn.execute(text("ALTER TABLE chat_history ADD COLUMN thread_id VARCHAR(50)"))
 	except Exception as e:
 		print(f"Startup migration warning: {e}")
+
+	try:
+		from rag.pipeline import _load_vector_store
+		_load_vector_store()
+		print("[MTI API] RAG vector store and embeddings pre-warmed and ready.")
+	except Exception as ex:
+		print(f"[MTI API] Pre-warm notice: {ex}")
 
 
 try:

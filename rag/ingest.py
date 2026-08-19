@@ -143,6 +143,9 @@ def split_documents(documents: list[Document]) -> list[Document]:
 	return splitter.split_documents(documents)
 
 
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
 def get_embeddings() -> HuggingFaceEmbeddings:
 	try:
 		import torch
@@ -150,9 +153,20 @@ def get_embeddings() -> HuggingFaceEmbeddings:
 		torch.set_num_interop_threads(1)
 	except Exception:
 		pass
+
+	# Check if model is cached locally to avoid slow network checks
+	import os
+	cache_dir = Path(os.path.expanduser("~/.cache/huggingface/hub"))
+	model_slug = "models--" + EMBEDDING_MODEL.replace("/", "--")
+	is_cached = (cache_dir / model_slug).exists()
+
+	model_kwargs = {"device": "cpu"}
+	if is_cached:
+		model_kwargs["local_files_only"] = True
+
 	return HuggingFaceEmbeddings(
 		model_name=EMBEDDING_MODEL,
-		model_kwargs={"device": "cpu"},
+		model_kwargs=model_kwargs,
 		encode_kwargs={"normalize_embeddings": True},
 	)
 

@@ -39,7 +39,7 @@ export const getOrInitAnonymousSession = async () => {
 
 	const deviceId = getDeviceId();
 	try {
-		const { data } = await axios.post(`${API_BASE_URL}/auth/anonymous`, { device_id: deviceId });
+		const { data } = await api.post("/auth/anonymous", { device_id: deviceId });
 		saveSession(data);
 		return data.access_token;
 	} catch (err) {

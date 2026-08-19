@@ -294,7 +294,15 @@ function Chat() {
       setActiveThreadId(threadId);
       threadStoreRef.current[threadId] = updatedMessages;
     } catch (err) {
-      const message = formatErrorMessage(err?.response?.data?.detail, err?.message ? `Unable to reach assistant backend (${err.message}).` : "Unable to get response from assistant.");
+      let fallbackMsg = "Unable to get response from assistant.";
+      if (err?.code === "ECONNABORTED" || err?.message?.includes("timeout")) {
+        fallbackMsg = "Assistant request timed out. Please check your network and LLM provider configuration.";
+      } else if (err?.message?.includes("Network Error") || err?.code === "ERR_NETWORK") {
+        fallbackMsg = "Cannot connect to assistant backend. Please ensure the backend server is running on http://localhost:8000.";
+      } else if (err?.message) {
+        fallbackMsg = `Unable to reach assistant backend (${err.message}).`;
+      }
+      const message = formatErrorMessage(err?.response?.data?.detail, fallbackMsg);
       setError(message);
     } finally {
       setLoading(false);
@@ -365,7 +373,15 @@ function Chat() {
       setActiveThreadId(threadId);
       threadStoreRef.current[threadId] = updated;
     } catch (err) {
-      const message = formatErrorMessage(err?.response?.data?.detail, err?.message ? `Unable to reach assistant backend (${err.message}).` : "Unable to get response from assistant.");
+      let fallbackMsg = "Unable to get response from assistant.";
+      if (err?.code === "ECONNABORTED" || err?.message?.includes("timeout")) {
+        fallbackMsg = "Assistant request timed out. Please check your network and LLM provider configuration.";
+      } else if (err?.message?.includes("Network Error") || err?.code === "ERR_NETWORK") {
+        fallbackMsg = "Cannot connect to assistant backend. Please ensure the backend server is running on http://localhost:8000.";
+      } else if (err?.message) {
+        fallbackMsg = `Unable to reach assistant backend (${err.message}).`;
+      }
+      const message = formatErrorMessage(err?.response?.data?.detail, fallbackMsg);
       setError(message);
     } finally {
       setLoading(false);

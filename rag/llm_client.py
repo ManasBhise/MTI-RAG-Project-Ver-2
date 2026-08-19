@@ -16,9 +16,10 @@ from rag.config import (
 logger = logging.getLogger(__name__)
 
 ACTIVE_GROQ_MODELS = [
-	"llama-3.3-70b-versatile",
 	"llama-3.1-8b-instant",
+	"llama-3.3-70b-versatile",
 	"llama-3.2-3b-preview",
+	"llama-3.2-1b-preview",
 	"llama3-70b-8192",
 	"llama3-8b-8192",
 ]
@@ -108,7 +109,7 @@ def _call_gemini_via_rest(api_key: str, model_name: str, messages: list[dict], t
 		}
 
 	headers = {"Content-Type": "application/json"}
-	resp = requests.post(url, headers=headers, json=payload, timeout=10)
+	resp = requests.post(url, headers=headers, json=payload, timeout=12)
 	resp.raise_for_status()
 
 	data = resp.json()
@@ -157,7 +158,7 @@ def _call_groq(api_key: str, model_name: str, messages: list[dict], temperature:
 	"""Invoke Groq LLM across available models."""
 	from groq import Groq
 
-	client = Groq(api_key=api_key)
+	client = Groq(api_key=api_key, timeout=20.0)
 	models_to_try = [model_name] + [m for m in ACTIVE_GROQ_MODELS if m != model_name]
 	models_to_try = list(dict.fromkeys(models_to_try))
 
@@ -176,6 +177,9 @@ def _call_groq(api_key: str, model_name: str, messages: list[dict], temperature:
 		except Exception as err:
 			last_err = err
 			logger.warning("Groq model %s failed: %s. Retrying next active model...", target_model, err)
+			err_str = str(err).lower()
+			if any(k in err_str for k in ["invalid_api_key", "unauthorized", "401", "authentication_error"]):
+				break
 			continue
 
 	if last_err:
@@ -187,7 +191,7 @@ def _call_openai(api_key: str, model_name: str, messages: list[dict], temperatur
 	"""Invoke OpenAI LLM across available models."""
 	from openai import OpenAI
 
-	client = OpenAI(api_key=api_key)
+	client = OpenAI(api_key=api_key, timeout=15.0)
 	models_to_try = [model_name] + [m for m in ACTIVE_OPENAI_MODELS if m != model_name]
 	models_to_try = list(dict.fromkeys(models_to_try))
 
@@ -206,6 +210,9 @@ def _call_openai(api_key: str, model_name: str, messages: list[dict], temperatur
 		except Exception as err:
 			last_err = err
 			logger.warning("OpenAI model %s failed: %s. Retrying next model...", target_model, err)
+			err_str = str(err).lower()
+			if any(k in err_str for k in ["insufficient_quota", "quota", "invalid_api_key", "unauthorized", "401"]):
+				break
 			continue
 
 	if last_err:
