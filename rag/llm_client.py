@@ -16,12 +16,12 @@ from rag.config import (
 logger = logging.getLogger(__name__)
 
 ACTIVE_GROQ_MODELS = [
-	"llama-3.1-8b-instant",
+	"openai/gpt-oss-120b",
+	"qwen/qwen3.6-27b",
+	"groq/compound",
+	"allam-2-7b",
 	"llama-3.3-70b-versatile",
-	"llama-3.2-3b-preview",
-	"llama-3.2-1b-preview",
-	"llama3-70b-8192",
-	"llama3-8b-8192",
+	"llama-3.1-8b-instant",
 ]
 
 ACTIVE_GEMINI_MODELS = [
@@ -173,6 +173,8 @@ def _call_groq(api_key: str, model_name: str, messages: list[dict], temperature:
 			)
 			content = (res.choices[0].message.content or "").strip()
 			if content:
+				import re
+				content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
 				return content
 		except Exception as err:
 			last_err = err
