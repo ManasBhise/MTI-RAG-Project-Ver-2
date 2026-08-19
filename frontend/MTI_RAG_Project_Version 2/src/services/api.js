@@ -1,8 +1,10 @@
 import axios from "axios";
 
 const RAW_API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL || "").trim() ||
-  "https://mti-rag-project-ver-2-production.up.railway.app";
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "http://localhost:8000"
+    : "https://mti-rag-project-ver-2-production.up.railway.app");
 
 const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 const TOKEN_KEY = "mti_access_token";
