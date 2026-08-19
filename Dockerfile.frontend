@@ -7,10 +7,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package manifests and install dependencies
-COPY ["frontend/MTI_RAG_Project_Version 2/package.json", "frontend/MTI_RAG_Project_Version 2/package-lock.json*", "./"]
+# Copy package manifest
+COPY ["frontend/MTI_RAG_Project_Version 2/package.json", "./"]
 
-RUN npm install
+RUN npm install --package-lock=false --legacy-peer-deps
 
 # Copy frontend source files
 COPY ["frontend/MTI_RAG_Project_Version 2/", "./"]
