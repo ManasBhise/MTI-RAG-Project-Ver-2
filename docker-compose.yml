@@ -23,9 +23,7 @@ services:
       - RAG_VECTOR_STORE_DIR=/app/rag/store
       - DATABASE_URL=sqlite:////app/data/mti_assistant.db
       - PRIMARY_LLM_PROVIDER=groq
-      - GROQ_MODEL=${GROQ_MODEL:-openai/gpt-oss-120b}
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - GROQ_MODEL=openai/gpt-oss-120b
     volumes:
       - ./data:/app/data
       - ./rag/store:/app/rag/store
