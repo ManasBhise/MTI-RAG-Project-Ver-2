@@ -258,22 +258,18 @@ def clean_source_references(text: str) -> str:
 
 MODE_PROMPTS = {
 	"basic": (
-		"RESPONSE DEPTH & RIGOR: EXHAUSTIVE BASIC / INTRODUCTORY METEOROLOGICAL COURSE.\n"
-		"Provide a comprehensive, thoroughly detailed, and pedagogically rich explanation. "
-		"Explain every fundamental principle clearly with real-world atmospheric examples, intuitive physical analogies, and step-by-step breakdowns. "
-		"Never give a brief summary; unpack every concept with thorough definitions, atmospheric processes, and practical weather relevance."
+		"RESPONSE MODE: BASIC (Clear, Intuitive & Pedagogical).\n"
+		"Provide a clean, approachable, and well-explained answer using clear language and intuitive atmospheric analogies. "
+		"Structure with: 1) Core Definition, 2) How the Process Works, 3) Real-World Weather Example."
 	),
 	"moderate": (
-		"RESPONSE DEPTH & RIGOR: COMPREHENSIVE OPERATIONAL & SYNOPTIC METEOROLOGY (EXHAUSTIVE DETAIL).\n"
-		"Provide a deeply detailed, highly structured, and technically thorough training lecture. "
-		"Cover the fundamental physical mechanisms, atmospheric thermodynamics, synoptic setups, observation signatures (radar/satellite/tephigram), and operational forecasting significance in extensive detail. "
-		"Present equations with clear variable definitions and explain every step of the atmospheric process thoroughly."
+		"RESPONSE MODE: MODERATE (Professional Operational Meteorology).\n"
+		"Provide a balanced, structured, and technically solid explanation for operational forecasters. "
+		"Structure with: 1) Scientific Overview, 2) Atmospheric & Physical Mechanisms, 3) Observational Signatures (Synoptic / Radar / Satellite), 4) Operational Forecast Significance."
 	),
 	"research": (
-		"RESPONSE DEPTH & RIGOR: ADVANCED RESEARCH & NUMERICAL DYNAMICS (EXHAUSTIVE EXPERT ANALYSIS).\n"
-		"Deliver an exhaustive, graduate-level research analysis with complete mathematical formulations, thermodynamic derivations, dynamic scale analysis, and numerical weather prediction (NWP) parameterization considerations. "
-		"Detail governing equations, force balance mechanisms, baroclinic/barotropic dynamics, synoptic case structures, and operational IMD forecasting applications. "
-		"Format with expansive, bold section headers, detailed variable lists, and thorough explanatory paragraphs."
+		"RESPONSE MODE: RESEARCH (Advanced Dynamic & Thermodynamic Deep-Dive).\n"
+		"Deliver an in-depth scientific analysis with governing equations, force balances, scale analysis, and NWP considerations for research meteorologists."
 	),
 }
 
@@ -324,15 +320,14 @@ def _generate_answer(
 
 		use_emojis = user_profile.get("use_emojis", True) if user_profile.get("use_emojis") is not None else True
 		if use_emojis:
-			parts.append("EMOJI POLICY: Enrich your response with relevant, professional meteorological emojis (e.g. 🌤️, 🌡️, 🌩️, 📊, 🌀, 🌧️, ⚡, 🔍, 💡, 📌) for section headers, bullet points, and key takeaways to make the response engaging.")
+			parts.append("EMOJI POLICY: Enrich section headers with clean, professional meteorological emojis (e.g. 📌, ⚙️, 📐, 🛰️, ✈️, 💡).")
 		else:
-			parts.append("STRICT EMOJI POLICY: Do NOT use any emojis anywhere in your response. Keep the text completely plain, formal, and without emoji symbols.")
+			parts.append("STRICT EMOJI POLICY: Do NOT use any emojis anywhere in your response.")
 
 		if parts:
 			profile_prompt = (
 				"\n\nUSER PERSONALIZATION & PREFERENCES:\n- "
 				+ "\n- ".join(parts)
-				+ "\n(IMPORTANT: Tailor your response tone, explanations, and emoji policy to align with this user's profile and custom instructions.)"
 			)
 
 	messages = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -354,12 +349,12 @@ def _generate_answer(
 		f"{mode_instruction}{profile_prompt}\n\n"
 		f"Context from MTI training documents:\n\n{capped_context}\n\n"
 		f"Current User Request: {question.strip()}\n\n"
-		"INSTRUCTION FOR DETAILED ANSWER GENERATION:\n"
-		"1. Synthesize a comprehensive, exhaustive, and deeply educational response. Do NOT provide brief or high-level summaries.\n"
-		"2. Structure your answer logically using clear markdown section headers (e.g. `### 1. Comprehensive Overview & Scientific Definition`, `### 2. Physical & Thermodynamic Mechanisms`, `### 3. Mathematical Formulation & Governing Equations`, `### 4. Synoptic, Radar & Satellite Observational Signatures`, `### 5. Operational, Aviation & Forecasting Implications`, `### 6. Key Takeaways & Operational Summary`).\n"
-		"3. Unpack all physical mechanisms, force balances, equations, variables, and atmospheric processes in detail.\n"
-		"4. The user is engaged in an ongoing conversation thread. Refer directly to the chat history above when responding to follow-ups or clarifications.\n"
-		"5. Do not include inline source citations like [1] or Source[2] in the body of your response."
+		"INSTRUCTIONS FOR ANSWER GENERATION:\n"
+		"1. ADAPTIVE FORMAT: If the user specifically asked for a single line, bullet points, table, or brief summary, provide that exact format directly and prominently first.\n"
+		"2. STRUCTURED LAYOUT: For open-ended questions, organize with clean, bold section headers and horizontal dividers (`---`).\n"
+		"3. FORMULAS: Format mathematical equations cleanly in standard LaTeX ($...$ or $$...$$) with clearly defined variables.\n"
+		"4. CONCISE & READABLE: Use bullet points, bold key terms, and clean tables for enhanced readability.\n"
+		"5. Do not include inline source citations like [1] or Source[2] in the body of the response."
 	)
 
 	messages.append({"role": "user", "content": user_prompt})
