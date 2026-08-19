@@ -342,8 +342,8 @@ def _generate_answer(
 			if a:
 				messages.append({"role": "assistant", "content": a[:1500]})
 
-	# Cap context text to 6000 characters max
-	capped_context = context[:6000] if context else ""
+	# Cap context text to 8500 characters max for enhanced grounding
+	capped_context = context[:8500] if context else ""
 
 	user_prompt = (
 		f"{mode_instruction}{profile_prompt}\n\n"
