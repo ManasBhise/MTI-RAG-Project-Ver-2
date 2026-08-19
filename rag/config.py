@@ -34,7 +34,7 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
 
-PRIMARY_LLM_PROVIDER = os.getenv("PRIMARY_LLM_PROVIDER", "groq").strip().lower()
+PRIMARY_LLM_PROVIDER = os.getenv("PRIMARY_LLM_PROVIDER", "gemini").strip().lower()
 
 SYSTEM_PROMPT = """You are the official MTI Knowledge Assistant for the Meteorological Training Institute (India Meteorological Department - IMD).
 You are a premier pedagogical authority and operational expert in meteorology, atmospheric dynamics, synoptic analysis, aviation forecasting, NWP, radar/satellite meteorology, agrometeorology, oceanography, and atmospheric physics.
