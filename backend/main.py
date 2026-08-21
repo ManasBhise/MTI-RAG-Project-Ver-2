@@ -28,18 +28,15 @@ try:
 	from backend.auth import router as auth_router
 	from backend.chat import router as chat_router
 	from backend.documents import router as documents_router
-	from backend.database import Base, engine
 except ImportError:
 	try:
 		from .auth import router as auth_router
 		from .chat import router as chat_router
 		from .documents import router as documents_router
-		from .database import Base, engine
 	except ImportError:
 		from auth import router as auth_router
 		from chat import router as chat_router
 		from documents import router as documents_router
-		from database import Base, engine
 
 
 app = FastAPI(title="MTI Knowledge Assistant API", version="1.0.0")
@@ -63,33 +60,6 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-	Base.metadata.create_all(bind=engine)
-	try:
-		from sqlalchemy import inspect, text
-		insp = inspect(engine)
-		with engine.begin() as conn:
-			if insp.has_table("users"):
-				cols = [col["name"] for col in insp.get_columns("users")]
-				if "google_id" not in cols:
-					conn.execute(text("ALTER TABLE users ADD COLUMN google_id VARCHAR(255)"))
-				if "role" not in cols:
-					conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(120)"))
-				if "organization" not in cols:
-					conn.execute(text("ALTER TABLE users ADD COLUMN organization VARCHAR(150)"))
-				if "response_tone" not in cols:
-					conn.execute(text("ALTER TABLE users ADD COLUMN response_tone VARCHAR(50)"))
-				if "custom_instructions" not in cols:
-					conn.execute(text("ALTER TABLE users ADD COLUMN custom_instructions TEXT"))
-				if "use_emojis" not in cols:
-					conn.execute(text("ALTER TABLE users ADD COLUMN use_emojis BOOLEAN DEFAULT 1"))
-
-			if insp.has_table("chat_history"):
-				chat_cols = [col["name"] for col in insp.get_columns("chat_history")]
-				if "thread_id" not in chat_cols:
-					conn.execute(text("ALTER TABLE chat_history ADD COLUMN thread_id VARCHAR(50)"))
-	except Exception as e:
-		print(f"Startup migration warning: {e}")
-
 	try:
 		from rag.pipeline import _load_vector_store
 		_load_vector_store()

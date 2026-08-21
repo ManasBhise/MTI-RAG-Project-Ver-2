@@ -6,12 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 try:
-	from .auth import get_current_user
-	from .models import User
+	from .auth import User, get_current_user
 	from .rag_service import generate_answer
 except ImportError:
-	from auth import get_current_user
-	from models import User
+	from auth import User, get_current_user
 	from rag_service import generate_answer
 
 
